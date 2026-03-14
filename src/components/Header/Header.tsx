@@ -5,9 +5,7 @@ export const Header = component$(() => {
     <header class="h-16 bg-brand-light border-b border-brand-border px-6 flex items-center justify-between shadow-sm z-10 relative">
       <div class="flex items-center space-x-4">
         <h1 class="text-2xl font-bold text-brand-text tracking-tight flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-600">
-            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-          </svg>
+          <img src="/favicon.svg" alt="OpenFamilyTree Logo" class="w-6 h-6" />
           OpenFamilyTree
         </h1>
         <span class="text-sm font-medium px-2 py-1 bg-amber-500 text-white rounded-md shadow-sm">Beta</span>
