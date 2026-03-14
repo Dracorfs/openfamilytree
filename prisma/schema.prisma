@@ -1,0 +1,76 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Family {
+  id        String   @id @default(cuid())
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  persons   Person[]
+}
+
+model Person {
+  id           String   @id @default(cuid())
+  familyId     String
+  family       Family   @relation(fields: [familyId], references: [id])
+
+  // Names
+  givenNames   String?
+  surname      String?
+  birthSurname String?
+  nickname     String?
+  title        String?
+  suffix       String?
+
+  // Demographics
+  gender       String?  // "m" | "f" | "o"
+  otherGender  String?
+
+  // Dates
+  birthDate    String?
+  birthPlace   String?
+  deathDate    String?
+  deathPlace   String?
+
+  // Contact
+  email        String?
+  phone        String?
+  address      String?
+  website      String?
+
+  // Bio
+  biography    String?
+
+  // Color label
+  colorLabel   String?
+
+  // Canvas position
+  posX         Float    @default(0)
+  posY         Float    @default(0)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  relationsA   Relationship[] @relation("personA")
+  relationsB   Relationship[] @relation("personB")
+}
+
+model Relationship {
+  id       String @id @default(cuid())
+  type     String // "partner" | "parent-child" | "sibling"
+  personA  Person @relation("personA", fields: [personAId], references: [id])
+  personAId String
+  personB  Person @relation("personB", fields: [personBId], references: [id])
+  personBId String
+
+  // Extra metadata
+  subtype  String? // "married" | "divorced" | "biological" | "adopted" etc.
+
+  @@unique([personAId, personBId, type])
+}
