@@ -82,7 +82,7 @@ export const Sidebar = component$(() => {
             <div class="mt-4 border-t border-slate-100 pt-4 space-y-4">
               <div class="grid grid-cols-[100px_1fr] items-center gap-2">
                 <label class="text-xs font-medium text-slate-600 text-right">Born:</label>
-                <input type="text" placeholder="Date" class="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-link bg-slate-50" defaultValue="1990" />
+                <input type="date" class="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-link bg-slate-50 text-slate-600" defaultValue="1990-01-01" />
               </div>
               <div class="grid grid-cols-[100px_1fr] items-center gap-2">
                 <label class="text-xs font-medium text-slate-600 text-right">in:</label>
@@ -93,7 +93,7 @@ export const Sidebar = component$(() => {
             <div class="mt-4 border-t border-slate-100 pt-4 space-y-4">
               <div class="grid grid-cols-[100px_1fr] items-center gap-2">
                 <label class="text-xs font-medium text-slate-600 text-right">Died:</label>
-                <input type="text" placeholder="Date" class="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-link bg-slate-50" />
+                <input type="date" class="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-link bg-slate-50 text-slate-600" />
               </div>
               <div class="grid grid-cols-[100px_1fr] items-center gap-2">
                 <label class="text-xs font-medium text-slate-600 text-right">in:</label>
