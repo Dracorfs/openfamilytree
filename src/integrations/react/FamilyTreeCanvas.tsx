@@ -23,20 +23,51 @@ const initialNodes = [
   {
     id: "partner",
     type: "person",
-    position: { x: 500, y: 200 },
+    position: { x: 550, y: 200 },
     data: { name: "Partner", birthYear: "1992", gender: "f" },
+  },
+  {
+    id: "union-1",
+    type: "union",
+    position: { x: 456, y: 220 },
+    data: {},
   },
   {
     id: "child",
     type: "person",
-    position: { x: 375, y: 350 },
+    position: { x: 400, y: 350 },
     data: { name: "Child", birthYear: "2020", gender: "o" },
   },
 ];
 
 const initialEdges = [
-  { id: "e-me-partner", source: "me", target: "partner", type: "straight", style: { strokeWidth: 2, stroke: "#8D8376" } },
-  { id: "e-me-child", source: "me", target: "child", type: "step", style: { strokeWidth: 2, stroke: "#8D8376" } },
+  { 
+    id: "e-me-union", 
+    source: "me", 
+    sourceHandle: "right",
+    target: "union-1", 
+    targetHandle: "left",
+    type: "smoothstep", 
+    style: { strokeWidth: 2, stroke: "#8D8376" } 
+  },
+  { 
+    id: "e-partner-union", 
+    source: "partner", 
+    sourceHandle: "left",
+    target: "union-1", 
+    targetHandle: "right",
+    type: "smoothstep", 
+    style: { strokeWidth: 2, stroke: "#8D8376" } 
+  },
+  { 
+    id: "e-union-child", 
+    source: "union-1", 
+    sourceHandle: "bottom",
+    target: "child", 
+    targetHandle: "top",
+    type: "smoothstep", 
+    style: { strokeWidth: 2, stroke: "#8D8376" } 
+  },
 ];
 
 const PersonNode = ({ data }: any) => {
@@ -52,18 +83,32 @@ const PersonNode = ({ data }: any) => {
     <div
       className={`relative px-4 py-2 shadow-md rounded-md bg-white border-2 ${borderColor} min-w-[120px] text-center cursor-pointer hover:shadow-lg transition-shadow`}
     >
-      <Handle type="target" position={Position.Top} className="opacity-0" />
+      <Handle type="target" position={Position.Top} id="top" className="opacity-0" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="opacity-0" />
+      <Handle type="source" position={Position.Right} id="right" className="opacity-0" />
+      <Handle type="source" position={Position.Left} id="left" className="opacity-0" />
+      
       <div className="font-bold text-slate-800">{data.name}</div>
       {data.birthYear && (
         <div className="text-xs text-slate-500">{data.birthYear}</div>
       )}
-      <Handle type="source" position={Position.Bottom} className="opacity-0" />
+    </div>
+  );
+};
+
+const UnionNode = () => {
+  return (
+    <div className="w-2 h-2 bg-slate-400 rounded-full shadow-sm relative">
+      <Handle type="target" position={Position.Left} id="left" className="opacity-0 absolute -left-1" />
+      <Handle type="target" position={Position.Right} id="right" className="opacity-0 absolute -right-1" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="opacity-0 absolute -bottom-1" />
     </div>
   );
 };
 
 const nodeTypes = {
   person: PersonNode,
+  union: UnionNode,
 };
 
 export function FamilyTreeCanvas() {
