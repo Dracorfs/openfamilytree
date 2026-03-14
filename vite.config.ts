@@ -5,7 +5,6 @@
 import { defineConfig, type UserConfig } from "vite";
 import { qwikVite } from "@builder.io/qwik/optimizer";
 import { qwikCity } from "@builder.io/qwik-city/vite";
-import tsconfigPaths from "vite-tsconfig-paths";
 import tailwindcss from "@tailwindcss/vite";
 import pkg from "./package.json";
 import { qwikReact } from "@builder.io/qwik-react/vite";
@@ -25,17 +24,13 @@ export default defineConfig(({ command, mode }): UserConfig => {
     plugins: [
       qwikCity(),
       qwikVite(),
-      tsconfigPaths({ root: "." }),
       qwikReact(),
       tailwindcss(),
     ],
     build: {
       rollupOptions: {
         onwarn(warning, warn) {
-          if (
-            warning.code === "MODULE_LEVEL_DIRECTIVE" &&
-            warning.message.includes(`"use client"`)
-          ) {
+          if (warning.code === 'MODULE_LEVEL_DIRECTIVE') {
             return;
           }
           warn(warning);
@@ -76,6 +71,9 @@ export default defineConfig(({ command, mode }): UserConfig => {
         "Cache-Control": "public, max-age=600",
       },
     },
+    resolve: {
+      tsconfigPaths: true
+    }
   };
 });
 // *** utils ***
