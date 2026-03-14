@@ -29,6 +29,19 @@ export default defineConfig(({ command, mode }): UserConfig => {
       qwikReact(),
       tailwindcss(),
     ],
+    build: {
+      rollupOptions: {
+        onwarn(warning, warn) {
+          if (
+            warning.code === "MODULE_LEVEL_DIRECTIVE" &&
+            warning.message.includes(`"use client"`)
+          ) {
+            return;
+          }
+          warn(warning);
+        },
+      },
+    },
     // This tells Vite which dependencies to pre-build in dev mode.
     optimizeDeps: {
       // Put problematic deps that break bundling here, mostly those with binaries.

@@ -1,10 +1,10 @@
 import { component$ } from "@builder.io/qwik";
-
 export const Header = component$(() => {
   return (
     <header class="h-16 bg-brand-light border-b border-brand-border px-6 flex items-center justify-between shadow-sm z-10 relative">
       <div class="flex items-center space-x-4">
         <h1 class="text-2xl font-bold text-brand-text tracking-tight flex items-center gap-2">
+          {/* eslint-disable-next-line qwik/jsx-img */}
           <img src="/favicon.svg" alt="OpenFamilyTree Logo" class="w-6 h-6" />
           OpenFamilyTree
         </h1>
