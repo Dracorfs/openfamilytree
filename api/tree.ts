@@ -1,18 +1,51 @@
-import type { RequestHandler } from '@builder.io/qwik-city';
-import { getPrismaClient } from '../../../db/client';
+import http from 'node:http';
+import { getPrismaClient } from '../src/db/client';
 
-export const onPost: RequestHandler = async ({ request, json, env }) => {
+const sendJson = (res: http.ServerResponse, status: number, payload: Record<string, unknown>) => {
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify(payload));
+};
+
+const parseBody = async (req: http.IncomingMessage) => {
+  if ((req as any).body) {
+    const body = (req as any).body;
+    return typeof body === 'string' ? JSON.parse(body) : body;
+  }
+
+  const rawBody = await new Promise<string>((resolve, reject) => {
+    let data = '';
+    req.on('data', (chunk) => {
+      data += chunk;
+    });
+    req.on('end', () => resolve(data));
+    req.on('error', reject);
+  });
+
+  if (!rawBody) {
+    return {};
+  }
+
+  return JSON.parse(rawBody);
+};
+
+const handleSaveTree = async (req: http.IncomingMessage, res: http.ServerResponse) => {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    sendJson(res, 405, { success: false, error: 'Method not allowed' });
+    return;
+  }
+
   try {
-    const dbUrl = env.get('DATABASE_URL') || process.env.DATABASE_URL;
+    const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) {
-      json(500, { success: false, error: 'Database URL not configured in environment' });
+      sendJson(res, 500, { success: false, error: 'Database URL not configured in environment' });
       return;
     }
+
     const prisma = getPrismaClient(dbUrl);
+    const { nodes = [], edges = [] } = await parseBody(req);
 
-    const { nodes, edges } = await request.json();
-
-    // 1. Ensure a default family exists
     let family = await prisma.family.findFirst();
     if (!family) {
       family = await prisma.family.create({
@@ -20,9 +53,7 @@ export const onPost: RequestHandler = async ({ request, json, env }) => {
       });
     }
 
-    // Wrap in a transaction to ensure atomic updates
     await prisma.$transaction(async (tx: any) => {
-      // 2. Clear existing data for this family (simple replace strategy for now)
       await tx.relationship.deleteMany({
         where: {
           OR: [
@@ -35,12 +66,10 @@ export const onPost: RequestHandler = async ({ request, json, env }) => {
         where: { familyId: family!.id },
       });
 
-      // 3. Create persons
       const personNodes = nodes.filter((n: any) => n.type === 'person');
-      const personIdMap = new Map<string, string>(); // ui_id -> db_id
+      const personIdMap = new Map<string, string>();
 
       for (const node of personNodes) {
-        // Split name into given/surname simplistically
         const names = (node.data.name || '').split(' ');
         const surname = names.length > 1 ? names.pop() : '';
         const givenNames = names.join(' ');
@@ -52,7 +81,7 @@ export const onPost: RequestHandler = async ({ request, json, env }) => {
             surname,
             nickname: node.data.name,
             gender: node.data.gender || 'o',
-            birthDate: node.data.birthYear, // simplistically mapped
+            birthDate: node.data.birthYear,
             posX: node.position.x,
             posY: node.position.y,
           },
@@ -60,19 +89,15 @@ export const onPost: RequestHandler = async ({ request, json, env }) => {
         personIdMap.set(node.id, person.id);
       }
 
-      // 4. Create relationships based on 'union' nodes
       const unionNodes = nodes.filter((n: any) => n.type === 'union');
-      
+
       for (const union of unionNodes) {
-        // Find partners (edges where target === union.id)
         const partnerEdges = edges.filter((e: any) => e.target === union.id);
         const partnerIds = partnerEdges
           .map((e: any) => personIdMap.get(e.source))
           .filter(Boolean) as string[];
 
-        // Create partner relationships (pairwise)
         if (partnerIds.length >= 2) {
-          // Simplistic pairwise partner logic
           for (let i = 0; i < partnerIds.length; i++) {
             for (let j = i + 1; j < partnerIds.length; j++) {
               await tx.relationship.create({
@@ -86,20 +111,18 @@ export const onPost: RequestHandler = async ({ request, json, env }) => {
           }
         }
 
-        // Find children (edges where source === union.id)
         const childEdges = edges.filter((e: any) => e.source === union.id);
         const childIds = childEdges
           .map((e: any) => personIdMap.get(e.target))
           .filter(Boolean) as string[];
 
-        // Link each partner as parent to each child
         for (const parentId of partnerIds) {
           for (const childId of childIds) {
             await tx.relationship.create({
               data: {
                 type: 'parent-child',
-                personAId: parentId, // Parent
-                personBId: childId,  // Child
+                personAId: parentId,
+                personBId: childId,
               },
             });
           }
@@ -107,9 +130,11 @@ export const onPost: RequestHandler = async ({ request, json, env }) => {
       }
     });
 
-    json(200, { success: true, message: 'Tree saved successfully' });
+    sendJson(res, 200, { success: true, message: 'Tree saved successfully' });
   } catch (error: any) {
     console.error('Failed to save tree:', error);
-    json(500, { success: false, error: error.message });
+    sendJson(res, 500, { success: false, error: error.message });
   }
 };
+
+export default handleSaveTree;
