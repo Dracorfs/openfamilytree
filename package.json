@@ -8,6 +8,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "postinstall": "prisma generate",
     "build": "qwik build",
     "build.client": "vite build",
     "build.preview": "vite build --ssr src/entry.preview.tsx",
