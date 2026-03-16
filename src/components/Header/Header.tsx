@@ -12,7 +12,10 @@ export const Header = component$(() => {
       </div>
 
       <div class="flex items-center space-x-3">
-        <button class="px-4 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors shadow-sm">
+        <button 
+          onClick$={() => document.dispatchEvent(new CustomEvent('save-family-tree'))}
+          class="px-4 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors shadow-sm"
+        >
           Save
         </button>
         <button class="px-4 py-1.5 text-sm font-medium text-white bg-emerald-600 border border-transparent rounded-md hover:bg-emerald-700 transition-colors shadow-sm">

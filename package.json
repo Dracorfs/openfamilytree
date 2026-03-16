@@ -37,6 +37,7 @@
     "@types/node": "20.19.0",
     "@types/react": "^18.2.28",
     "@types/react-dom": "^18.2.13",
+    "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "6.0.1",
     "eslint": "9.32.0",
     "eslint-plugin-qwik": "^1.19.1",
@@ -54,7 +55,10 @@
     "vite": "8.0.0"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
+    "@prisma/adapter-neon": "^7.5.0",
     "@prisma/client": "^7.5.0",
-    "@xyflow/react": "^12.10.1"
+    "@xyflow/react": "^12.10.1",
+    "ws": "^8.19.0"
   }
 }

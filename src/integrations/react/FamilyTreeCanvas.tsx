@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { useEffect } from "react";
 import {
   ReactFlow,
   MiniMap,
@@ -114,6 +115,32 @@ const nodeTypes = {
 export function FamilyTreeCanvas() {
   const [nodes, , onNodesChange] = useNodesState(initialNodes as any);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges as any);
+
+  useEffect(() => {
+    const handleSave = async () => {
+      try {
+        const response = await fetch('/api/tree', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nodes, edges }),
+        });
+        const result = await response.json();
+        if (result.success) {
+          alert('Family tree saved successfully!');
+        } else {
+          alert('Failed to save family tree: ' + result.error);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('An error occurred while saving.');
+      }
+    };
+
+    document.addEventListener('save-family-tree', handleSave);
+    return () => {
+      document.removeEventListener('save-family-tree', handleSave);
+    };
+  }, [nodes, edges]);
 
   return (
     <div className="w-full h-full bg-[#FEFDFC]">
