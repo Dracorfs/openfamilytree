@@ -77,7 +77,6 @@ export const Header = component$(() => {
           <div class="flex items-center gap-3">
             <div class="flex items-center gap-2">
               {user.value.image ? (
-                // eslint-disable-next-line qwik/jsx-img
                 <img
                   src={user.value.image}
                   alt={user.value.name}
