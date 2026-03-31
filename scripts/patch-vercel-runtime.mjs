@@ -87,12 +87,12 @@ module.exports.handler = async function handler(req, res) {
 };
 `;
 
-writeFileSync(join(funcDir, "entry.vercel-node.js"), adapterCode);
+writeFileSync(join(funcDir, "adapter.js"), adapterCode);
 
 // ── Patch .vc-config.json ────────────────────────────────────────────────────
 const config = {
   runtime: "nodejs20.x",
-  handler: "entry.vercel-node.handler",
+  handler: "adapter.handler",
   maxDuration: 30,
 };
 writeFileSync(join(funcDir, ".vc-config.json"), JSON.stringify(config, null, 2) + "\n");
