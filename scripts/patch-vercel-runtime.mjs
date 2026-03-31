@@ -70,7 +70,7 @@ const adapterCode = [
   "}",
 ].join("\n");
 
-writeFileSync(join(funcDir, "entry.vercel-node.mjs"), adapterCode);
+writeFileSync(join(funcDir, "entry.vercel-node.js"), adapterCode);
 
 // ── Patch .vc-config.json ────────────────────────────────────────────────────
 const config = {
@@ -80,4 +80,4 @@ const config = {
 };
 writeFileSync(join(funcDir, ".vc-config.json"), JSON.stringify(config, null, 2) + "\n");
 
-console.log("Wrote entry.vercel-node.mjs + patched .vc-config.json");
+console.log("Wrote entry.vercel-node.js + patched .vc-config.json");
