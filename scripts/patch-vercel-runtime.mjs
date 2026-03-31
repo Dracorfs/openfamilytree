@@ -14,7 +14,7 @@ const configPath = join(funcDir, ".vc-config.json");
 
 const patched = {
   runtime: "nodejs20.x",
-  entrypoint: "entry.vercel-edge.js",
+  handler: "entry.vercel-edge.js",
   web: true,
   maxDuration: 30,
 };
