@@ -1,92 +1,23 @@
 /**
- * Patches the Vercel function output to run as Node.js 20.x serverless.
+ * Patches .vc-config.json to run as Node.js 20.x with Web API handler format.
  *
- * The vercel-edge adapter produces an entry that expects a Web API Request and
- * returns a Web API Response — that is the Edge function signature. Vercel's
- * Node.js serverless runtime calls handlers with (IncomingMessage, ServerResponse)
- * instead, so we write a thin adapter that bridges the two formats and point
- * .vc-config.json at it.
+ * The vercel-edge adapter exports a Web API handler (Request → Response).
+ * By setting runtime=nodejs20.x + web=true, Vercel uses the Node.js runtime
+ * (which supports node:fs, node:crypto, etc. that Prisma needs) but keeps
+ * the Web API handler signature — no adapter wrapper needed.
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const funcDir = ".vercel/output/functions/_qwik-city.func";
-
-// ── Node.js ↔ Web-API adapter ────────────────────────────────────────────────
-const wrapper = `
-import qwikHandler from './entry.vercel-edge.js';
-
-export async function handler(req, res) {
-  try {
-    // Build an absolute URL from the incoming Node.js request.
-    const proto = req.headers['x-forwarded-proto'] || 'https';
-    const host  = req.headers['x-forwarded-host'] || req.headers['host'] || 'localhost';
-    const url   = new URL(req.url, proto + '://' + host);
-
-    // Copy incoming headers into a Web API Headers object.
-    const headers = new Headers();
-    for (const [key, val] of Object.entries(req.headers)) {
-      if (val === undefined) continue;
-      if (Array.isArray(val)) { for (const v of val) headers.append(key, v); }
-      else headers.set(key, val);
-    }
-
-    // Buffer the request body (GET / HEAD have none).
-    const hasBody = req.method && req.method !== 'GET' && req.method !== 'HEAD';
-    const body = hasBody ? await new Promise((resolve) => {
-      const chunks = [];
-      req.on('data', (c) => chunks.push(c));
-      req.on('end', () => { const b = Buffer.concat(chunks); resolve(b.length ? b : undefined); });
-    }) : undefined;
-
-    // Call the Qwik / edge handler with a proper Web API Request.
-    const init = { method: req.method || 'GET', headers };
-    if (body) init.body = body;
-    if (body) init.duplex = 'half';
-    const request  = new Request(url.href, init);
-    const response = await qwikHandler(request);
-
-    // Write status + headers to the Node.js response.
-    res.statusCode = response.status;
-    response.headers.forEach((value, key) => {
-      const lower = key.toLowerCase();
-      if (lower === 'set-cookie') {
-        // getSetCookie returns individual cookie strings
-        const existing = res.getHeader('Set-Cookie') || [];
-        const arr = Array.isArray(existing) ? existing : [existing];
-        arr.push(value);
-        res.setHeader('Set-Cookie', arr);
-      } else {
-        res.setHeader(key, value);
-      }
-    });
-
-    // Stream the response body.
-    if (response.body) {
-      const reader = response.body.getReader();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        await new Promise((ok, fail) => res.write(value, (err) => err ? fail(err) : ok()));
-      }
-    }
-    res.end();
-  } catch (e) {
-    console.error('Node adapter error:', e);
-    if (!res.headersSent) {
-      res.statusCode = 500;
-      res.end('Internal Server Error');
-    }
-  }
-}
-`.trimStart();
-
-writeFileSync(join(funcDir, "entry.vercel-node.js"), wrapper);
-
-// ── Patch .vc-config.json ────────────────────────────────────────────────────
 const configPath = join(funcDir, ".vc-config.json");
-const patched = { runtime: "nodejs20.x", handler: "entry.vercel-node.handler", launcherType: "Nodejs", maxDuration: 30 };
-writeFileSync(configPath, JSON.stringify(patched, null, 2) + "\n");
 
+const patched = {
+  runtime: "nodejs20.x",
+  entrypoint: "entry.vercel-edge.js",
+  web: true,
+  maxDuration: 30,
+};
+
+writeFileSync(configPath, JSON.stringify(patched, null, 2) + "\n");
 console.log("Patched .vc-config.json →", patched);
-console.log("Wrote entry.vercel-node.js (Node.js ↔ Web-API adapter)");
