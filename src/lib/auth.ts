@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { PrismaNeon } from "@prisma/adapter-neon";
-import { PrismaClient } from "~/generated/prisma/client";
+import { PrismaClient } from "../generated/prisma/client";
 
 let _auth: any;
 

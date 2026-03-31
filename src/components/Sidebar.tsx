@@ -1,0 +1,354 @@
+import { useCallback, useEffect, useState } from "react";
+
+export function Sidebar() {
+  const [activeTab, setActiveTab] = useState("Personal");
+  const tabs = ["Personal", "Partners", "Contact", "Biography"];
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [personName, setPersonName] = useState("");
+  const [surname, setSurname] = useState("");
+  const [birthSurname, setBirthSurname] = useState("");
+  const [gender, setGender] = useState("o");
+  const [birthDate, setBirthDate] = useState("");
+  const [birthPlace, setBirthPlace] = useState("");
+  const [deathDate, setDeathDate] = useState("");
+  const [deathPlace, setDeathPlace] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [biography, setBiography] = useState("");
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (!detail) {
+        setSelectedId(null);
+        setPersonName("");
+        setSurname("");
+        setBirthSurname("");
+        setGender("o");
+        setBirthDate("");
+        setBirthPlace("");
+        setDeathDate("");
+        setDeathPlace("");
+        setEmail("");
+        setPhone("");
+        setAddress("");
+        setBiography("");
+        return;
+      }
+      setSelectedId(detail.id);
+      setPersonName(detail.name || "");
+      setSurname(detail.surname || "");
+      setBirthSurname(detail.birthSurname || "");
+      setGender(detail.gender || "o");
+      setBirthDate(detail.birthYear || "");
+      setBirthPlace(detail.birthPlace || "");
+      setDeathDate(detail.deathDate || "");
+      setDeathPlace(detail.deathPlace || "");
+      setEmail(detail.email || "");
+      setPhone(detail.phone || "");
+      setAddress(detail.address || "");
+      setBiography(detail.biography || "");
+    };
+
+    document.addEventListener("node-selected", handler);
+    return () => document.removeEventListener("node-selected", handler);
+  }, []);
+
+  const dispatchUpdate = useCallback(
+    (field: string, value: string) => {
+      if (!selectedId) return;
+      document.dispatchEvent(
+        new CustomEvent("update-node", {
+          detail: { nodeId: selectedId, data: { [field]: value } },
+        }),
+      );
+    },
+    [selectedId],
+  );
+
+  const dispatchAdd = useCallback(
+    (relation: "partner" | "parent" | "child") => {
+      if (!selectedId) return;
+      document.dispatchEvent(
+        new CustomEvent("add-person", {
+          detail: { relation, targetNodeId: selectedId },
+        }),
+      );
+    },
+    [selectedId],
+  );
+
+  const displayName = personName || "Select a person";
+  const displayBirth = birthDate ? `b. ${birthDate}` : "";
+
+  return (
+    <aside className="w-[360px] h-full bg-white border-r border-brand-border shadow-lg flex flex-col z-10 relative">
+      {/* Sidebar Header (Person Info) */}
+      <div className="p-6 border-b border-brand-border bg-slate-50/50">
+        <div className="flex flex-col items-center">
+          <div
+            className={`w-24 h-24 rounded-lg border mb-4 shadow-sm flex items-center justify-center ${
+              selectedId
+                ? gender === "f"
+                  ? "bg-pink-50 border-pink-300 text-pink-400"
+                  : gender === "m"
+                    ? "bg-blue-50 border-blue-300 text-blue-400"
+                    : "bg-slate-100 border-slate-300 text-slate-400"
+                : "bg-slate-200 border-slate-300 text-slate-400"
+            }`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 text-center">{displayName}</h2>
+          {displayBirth && <p className="text-sm text-slate-500 mt-1">{displayBirth}</p>}
+        </div>
+
+        {selectedId && (
+          <div className="grid grid-cols-2 gap-2 mt-6">
+            <button
+              onClick={() => dispatchAdd("partner")}
+              className="col-span-2 py-1.5 text-xs font-medium bg-white text-slate-700 border border-slate-300 rounded hover:bg-slate-50 transition-colors"
+            >
+              + Add Partner
+            </button>
+            <button
+              onClick={() => dispatchAdd("parent")}
+              className="py-1.5 text-xs font-medium bg-white text-slate-700 border border-slate-300 rounded hover:bg-slate-50 transition-colors"
+            >
+              + Add Parent
+            </button>
+            <button
+              onClick={() => dispatchAdd("child")}
+              className="py-1.5 text-xs font-medium bg-white text-slate-700 border border-slate-300 rounded hover:bg-slate-50 transition-colors"
+            >
+              + Add Child
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-brand-border bg-slate-100/50">
+        {tabs.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 py-2 text-xs font-medium text-center transition-colors ${
+              activeTab === tab
+                ? "bg-white text-brand-link border-b-2 border-brand-link"
+                : "text-slate-600 hover:text-slate-900 border-b border-transparent"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      <div className="flex-1 overflow-y-auto p-4 bg-white">
+        {!selectedId ? (
+          <div className="text-sm text-slate-500 italic text-center mt-10">
+            Click a person on the tree to edit their details.
+          </div>
+        ) : (
+          <>
+            {activeTab === "Personal" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+                  <label className="text-xs font-medium text-slate-600 text-right">Given names:</label>
+                  <input
+                    type="text"
+                    className="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-link bg-slate-50"
+                    value={personName}
+                    onChange={(e) => {
+                      setPersonName(e.target.value);
+                      dispatchUpdate("name", e.target.value);
+                    }}
+                  />
+                </div>
+                <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+                  <label className="text-xs font-medium text-slate-600 text-right">Surname:</label>
+                  <input
+                    type="text"
+                    className="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-link bg-slate-50"
+                    value={surname}
+                    onChange={(e) => {
+                      setSurname(e.target.value);
+                      dispatchUpdate("surname", e.target.value);
+                    }}
+                  />
+                </div>
+                <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+                  <label className="text-xs font-medium text-slate-600 text-right">Birth surname:</label>
+                  <input
+                    type="text"
+                    className="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-link bg-slate-50"
+                    value={birthSurname}
+                    onChange={(e) => {
+                      setBirthSurname(e.target.value);
+                      dispatchUpdate("birthSurname", e.target.value);
+                    }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-[100px_1fr] items-center gap-2 mt-4">
+                  <label className="text-xs font-medium text-slate-600 text-right">Gender:</label>
+                  <div className="flex items-center gap-3">
+                    {(["f", "m", "o"] as const).map((g) => (
+                      <label key={g} className="flex items-center gap-1 text-sm text-slate-700 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="gender"
+                          value={g}
+                          checked={gender === g}
+                          onChange={() => {
+                            setGender(g);
+                            dispatchUpdate("gender", g);
+                          }}
+                          className="accent-brand-link"
+                        />
+                        {g === "f" ? "Female" : g === "m" ? "Male" : "Other"}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4 border-t border-slate-100 pt-4 space-y-4">
+                  <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+                    <label className="text-xs font-medium text-slate-600 text-right">Born:</label>
+                    <input
+                      type="date"
+                      className="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-link bg-slate-50 text-slate-600"
+                      value={birthDate}
+                      onChange={(e) => {
+                        setBirthDate(e.target.value);
+                        dispatchUpdate("birthYear", e.target.value);
+                      }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+                    <label className="text-xs font-medium text-slate-600 text-right">in:</label>
+                    <input
+                      type="text"
+                      placeholder="Place"
+                      className="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-link bg-slate-50"
+                      value={birthPlace}
+                      onChange={(e) => {
+                        setBirthPlace(e.target.value);
+                        dispatchUpdate("birthPlace", e.target.value);
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4 border-t border-slate-100 pt-4 space-y-4">
+                  <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+                    <label className="text-xs font-medium text-slate-600 text-right">Died:</label>
+                    <input
+                      type="date"
+                      className="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-link bg-slate-50 text-slate-600"
+                      value={deathDate}
+                      onChange={(e) => {
+                        setDeathDate(e.target.value);
+                        dispatchUpdate("deathDate", e.target.value);
+                      }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+                    <label className="text-xs font-medium text-slate-600 text-right">in:</label>
+                    <input
+                      type="text"
+                      placeholder="Place"
+                      className="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-link bg-slate-50"
+                      value={deathPlace}
+                      onChange={(e) => {
+                        setDeathPlace(e.target.value);
+                        dispatchUpdate("deathPlace", e.target.value);
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "Partners" && (
+              <div className="text-sm text-slate-500 italic text-center mt-10">
+                No partners added yet.
+              </div>
+            )}
+
+            {activeTab === "Contact" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-[80px_1fr] items-center gap-2">
+                  <label className="text-xs font-medium text-slate-600 text-right">Email:</label>
+                  <input
+                    type="email"
+                    className="w-full px-2 py-1 text-sm border border-slate-300 rounded bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-link"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      dispatchUpdate("email", e.target.value);
+                    }}
+                  />
+                </div>
+                <div className="grid grid-cols-[80px_1fr] items-center gap-2">
+                  <label className="text-xs font-medium text-slate-600 text-right">Phone:</label>
+                  <input
+                    type="tel"
+                    className="w-full px-2 py-1 text-sm border border-slate-300 rounded bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-link"
+                    value={phone}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      dispatchUpdate("phone", e.target.value);
+                    }}
+                  />
+                </div>
+                <div className="grid grid-cols-[80px_1fr] items-start gap-2">
+                  <label className="text-xs font-medium text-slate-600 text-right pt-1">Address:</label>
+                  <textarea
+                    rows={3}
+                    className="w-full px-2 py-1 text-sm border border-slate-300 rounded bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-link"
+                    value={address}
+                    onChange={(e) => {
+                      setAddress(e.target.value);
+                      dispatchUpdate("address", e.target.value);
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {activeTab === "Biography" && (
+              <div className="flex flex-col h-full">
+                <textarea
+                  className="flex-1 w-full p-3 text-sm border border-slate-300 rounded bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-link resize-none"
+                  placeholder="Write biography details here..."
+                  value={biography}
+                  onChange={(e) => {
+                    setBiography(e.target.value);
+                    dispatchUpdate("biography", e.target.value);
+                  }}
+                />
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </aside>
+  );
+}

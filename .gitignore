@@ -9,6 +9,8 @@ node_modules
 .env
 *.local
 
+app.config.timestamp*
+
 # Cache
 .cache
 .mf
