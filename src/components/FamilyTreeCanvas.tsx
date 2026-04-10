@@ -39,16 +39,16 @@ interface PersonData {
 
 const initialNodes: Node[] = [
   {
-    id: "me",
+    id: "dad",
     type: "person",
     position: { x: 250, y: 200 },
-    data: { name: "Me", birthYear: "1990", gender: "m" },
+    data: { name: "Dad", gender: "m" },
   },
   {
-    id: "partner",
+    id: "mom",
     type: "person",
     position: { x: 550, y: 200 },
-    data: { name: "Partner", birthYear: "1992", gender: "f" },
+    data: { name: "Mom", gender: "f" },
   },
   {
     id: "union-1",
@@ -57,17 +57,17 @@ const initialNodes: Node[] = [
     data: {},
   },
   {
-    id: "child",
+    id: "me",
     type: "person",
     position: { x: 400, y: 350 },
-    data: { name: "Child", birthYear: "2020", gender: "o" },
+    data: { name: "Me", gender: "o" },
   },
 ];
 
 const initialEdges = [
   {
-    id: "e-me-union",
-    source: "me",
+    id: "e-dad-union",
+    source: "dad",
     sourceHandle: "right",
     target: "union-1",
     targetHandle: "left",
@@ -75,8 +75,8 @@ const initialEdges = [
     style: { strokeWidth: 2, stroke: "#8D8376" },
   },
   {
-    id: "e-partner-union",
-    source: "partner",
+    id: "e-mom-union",
+    source: "mom",
     sourceHandle: "left",
     target: "union-1",
     targetHandle: "right",
@@ -84,10 +84,10 @@ const initialEdges = [
     style: { strokeWidth: 2, stroke: "#8D8376" },
   },
   {
-    id: "e-union-child",
+    id: "e-union-me",
     source: "union-1",
     sourceHandle: "bottom",
-    target: "child",
+    target: "me",
     targetHandle: "top",
     type: "smoothstep",
     style: { strokeWidth: 2, stroke: "#8D8376" },
