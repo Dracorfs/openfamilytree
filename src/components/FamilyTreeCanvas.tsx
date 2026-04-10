@@ -415,6 +415,8 @@ export function FamilyTreeCanvas() {
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
+        nodesDraggable={false}
+        nodesConnectable={false}
         fitView
         minZoom={0.2}
         defaultEdgeOptions={{ zIndex: 0 }}
@@ -430,7 +432,7 @@ export function FamilyTreeCanvas() {
           zoomable
           pannable
         />
-        <Controls />
+        <Controls showInteractive={false} />
       </ReactFlow>
     </div>
   );
