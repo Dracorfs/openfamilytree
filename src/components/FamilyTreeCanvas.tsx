@@ -120,8 +120,8 @@ function PersonNode({ data, selected }: any) {
 
   return (
     <div
-      className={`relative px-4 py-2 shadow-md rounded-md bg-white border-2 ${borderColor} min-w-[120px] text-center cursor-pointer hover:shadow-lg transition-shadow ${
-        selected ? "ring-2 ring-brand-link ring-offset-1" : ""
+      className={`relative px-4 py-2 shadow-md rounded-md bg-white dark:bg-gray-800 border-2 ${borderColor} min-w-[120px] text-center cursor-pointer hover:shadow-lg transition-shadow ${
+        selected ? "ring-2 ring-brand-link dark:ring-blue-400 ring-offset-1 dark:ring-offset-gray-900" : ""
       }`}
     >
       <Handle type="target" position={Position.Top} id="top" className="opacity-0" />
@@ -131,15 +131,15 @@ function PersonNode({ data, selected }: any) {
       <Handle type="target" position={Position.Left} id="target-left" className="opacity-0" />
       <Handle type="target" position={Position.Right} id="target-right" className="opacity-0" />
 
-      <div className="font-bold text-slate-800">{data.name}</div>
-      {data.birthYear && <div className="text-xs text-slate-500">{data.birthYear}</div>}
+      <div className="font-bold text-slate-800 dark:text-gray-100">{data.name}</div>
+      {data.birthYear && <div className="text-xs text-slate-500 dark:text-gray-400">{data.birthYear}</div>}
     </div>
   );
 }
 
 function UnionNode() {
   return (
-    <div className="w-2 h-2 bg-slate-400 rounded-full shadow-sm relative">
+    <div className="w-2 h-2 bg-slate-400 dark:bg-gray-500 rounded-full shadow-sm relative">
       <Handle
         type="target"
         position={Position.Left}
@@ -406,7 +406,7 @@ export function FamilyTreeCanvas() {
   }, [nodes, edges]);
 
   return (
-    <div className="w-full h-full bg-[#FEFDFC]">
+    <div className="w-full h-full bg-[#FEFDFC] dark:bg-gray-950">
       <ReactFlow
         nodes={nodes}
         edges={edges}

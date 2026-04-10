@@ -9,7 +9,7 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-brand-dark">
+    <div className="flex flex-col h-screen overflow-hidden bg-brand-dark dark:bg-gray-950">
       <Header />
       <div className="flex flex-1 overflow-hidden relative">
         <Sidebar />
