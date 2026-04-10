@@ -76,8 +76,14 @@ export function Header() {
         </button>
 
         <button
-          onClick={() => document.dispatchEvent(new CustomEvent("save-family-tree"))}
-          className="px-4 py-1.5 text-sm font-medium text-slate-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 rounded-md hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+          onClick={() => user && document.dispatchEvent(new CustomEvent("save-family-tree"))}
+          disabled={!user}
+          title={!user ? "Sign in to save your family tree" : undefined}
+          className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors shadow-sm ${
+            user
+              ? "text-slate-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-gray-700 cursor-pointer"
+              : "text-slate-400 dark:text-gray-500 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 cursor-not-allowed"
+          }`}
         >
           Save
         </button>

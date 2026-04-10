@@ -65,9 +65,9 @@ model Person {
 model Relationship {
   id       String @id @default(cuid())
   type     String // "partner" | "parent-child" | "sibling"
-  personA  Person @relation("personA", fields: [personAId], references: [id])
+  personA  Person @relation("personA", fields: [personAId], references: [id], onDelete: Cascade)
   personAId String
-  personB  Person @relation("personB", fields: [personBId], references: [id])
+  personB  Person @relation("personB", fields: [personBId], references: [id], onDelete: Cascade)
   personBId String
 
   // Extra metadata
