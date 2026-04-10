@@ -88,32 +88,32 @@ export function Sidebar() {
       {/* Sidebar Header (Person Info) */}
       <div className="p-6 border-b border-brand-border dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50">
         <div className="flex flex-col items-center">
-          <div
-            className={`w-24 h-24 rounded-lg border mb-4 shadow-sm flex items-center justify-center ${
-              selectedId
-                ? gender === "f"
+          {selectedId && (
+            <div
+              className={`w-24 h-24 rounded-lg border mb-4 shadow-sm flex items-center justify-center ${
+                gender === "f"
                   ? "bg-pink-50 border-pink-300 text-pink-400"
                   : gender === "m"
                     ? "bg-blue-50 border-blue-300 text-blue-400"
                     : "bg-slate-100 border-slate-300 text-slate-400"
-                : "bg-slate-200 dark:bg-gray-700 border-slate-300 dark:border-gray-600 text-slate-400 dark:text-gray-500"
-            }`}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+              }`}
             >
-              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          </div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="32"
+                height="32"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            </div>
+          )}
           <h2 className="text-xl font-bold text-slate-800 dark:text-gray-100 text-center">{displayName}</h2>
           {displayBirth && <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{displayBirth}</p>}
         </div>
