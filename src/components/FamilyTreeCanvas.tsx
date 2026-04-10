@@ -71,7 +71,7 @@ const initialEdges = [
     sourceHandle: "right",
     target: "union-1",
     targetHandle: "left",
-    type: "smoothstep",
+    type: "straight",
     style: { strokeWidth: 2, stroke: "#8D8376" },
   },
   {
@@ -80,7 +80,7 @@ const initialEdges = [
     sourceHandle: "left",
     target: "union-1",
     targetHandle: "right",
-    type: "smoothstep",
+    type: "straight",
     style: { strokeWidth: 2, stroke: "#8D8376" },
   },
   {
@@ -96,6 +96,11 @@ const initialEdges = [
 
 const edgeDefaults = {
   type: "smoothstep" as const,
+  style: { strokeWidth: 2, stroke: "#8D8376" },
+};
+
+const partnerEdgeDefaults = {
+  type: "straight" as const,
   style: { strokeWidth: 2, stroke: "#8D8376" },
 };
 
@@ -268,7 +273,7 @@ export function FamilyTreeCanvas() {
               sourceHandle: "right",
               target: unionId,
               targetHandle: "left",
-              ...edgeDefaults,
+              ...partnerEdgeDefaults,
             },
             {
               id: nextId("e"),
@@ -276,7 +281,7 @@ export function FamilyTreeCanvas() {
               sourceHandle: "left",
               target: unionId,
               targetHandle: "right",
-              ...edgeDefaults,
+              ...partnerEdgeDefaults,
             },
           );
         } else if (relation === "child") {
