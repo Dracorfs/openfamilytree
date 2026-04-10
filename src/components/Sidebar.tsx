@@ -119,24 +119,24 @@ export function Sidebar() {
         </div>
 
         {selectedId && (
-          <div className="grid grid-cols-2 gap-2 mt-6">
+          <div className="grid grid-cols-3 gap-2 mt-6">
             <button
               onClick={() => dispatchAdd("partner")}
-              className="col-span-2 py-1.5 text-xs font-medium bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-300 dark:border-gray-600 rounded hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors"
+              className="py-1.5 text-xs font-medium bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-300 dark:border-gray-600 rounded hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors"
             >
-              + Add Partner
+              + Partner
             </button>
             <button
               onClick={() => dispatchAdd("parent")}
               className="py-1.5 text-xs font-medium bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-300 dark:border-gray-600 rounded hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors"
             >
-              + Add Parent
+              + Parent
             </button>
             <button
               onClick={() => dispatchAdd("child")}
               className="py-1.5 text-xs font-medium bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-300 dark:border-gray-600 rounded hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors"
             >
-              + Add Child
+              + Child
             </button>
           </div>
         )}
