@@ -144,30 +144,30 @@ function PersonNode({ data, selected }: any) {
 
 function UnionNode() {
   return (
-    <div className="w-2 h-2 bg-slate-400 dark:bg-gray-500 rounded-full shadow-sm relative">
+    <div className="w-2 h-2 bg-slate-400 dark:bg-gray-500 rounded-full shadow-sm relative pointer-events-none cursor-default">
       <Handle
         type="target"
         position={Position.Left}
         id="left"
-        className="opacity-0 absolute -left-1"
+        className="opacity-0 absolute -left-1 !pointer-events-none"
       />
       <Handle
         type="target"
         position={Position.Right}
         id="right"
-        className="opacity-0 absolute -right-1"
+        className="opacity-0 absolute -right-1 !pointer-events-none"
       />
       <Handle
         type="source"
         position={Position.Bottom}
         id="bottom"
-        className="opacity-0 absolute -bottom-1"
+        className="opacity-0 absolute -bottom-1 !pointer-events-none"
       />
       <Handle
         type="target"
         position={Position.Top}
         id="top"
-        className="opacity-0 absolute -top-1"
+        className="opacity-0 absolute -top-1 !pointer-events-none"
       />
     </div>
   );
