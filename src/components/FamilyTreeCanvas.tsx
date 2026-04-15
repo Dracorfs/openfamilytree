@@ -526,15 +526,18 @@ export function FamilyTreeCanvas() {
         }
 
         selectedNodeIdRef.current = newPersonId;
+        const finalNodes = newNodes.map((n) => ({
+          ...n,
+          selected: n.id === newPersonId,
+        }));
         setTimeout(() => {
           document.dispatchEvent(
-            new CustomEvent("node-selected", {
-              detail: { ...newPerson.data, id: newPerson.id },
+            new CustomEvent("select-person-by-id", {
+              detail: { id: newPersonId },
             }),
           );
         }, 50);
-
-        return newNodes;
+        return finalNodes;
       });
     };
 
