@@ -542,6 +542,54 @@ export function FamilyTreeCanvas() {
     return () => document.removeEventListener("add-person", handler);
   }, [setNodes, setEdges, dispatchNodeSelected]);
 
+  // Listen: delete-person
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { id } = (e as CustomEvent).detail as { id: string };
+      setEdges((prevEdges) => {
+        setNodes((prevNodes) => {
+          const connectedUnions = new Set(
+            prevEdges
+              .filter((ed) => ed.source === id || ed.target === id)
+              .map((ed) => (ed.source === id ? ed.target : ed.source))
+              .filter((nid) => prevNodes.find((n) => n.id === nid)?.type === "union"),
+          );
+
+          const remainingEdges = prevEdges.filter(
+            (ed) => ed.source !== id && ed.target !== id,
+          );
+
+          const unionsToRemove = new Set<string>();
+          connectedUnions.forEach((u) => {
+            const partnerCount = remainingEdges.filter(
+              (ed) =>
+                ed.target === u &&
+                prevNodes.find((n) => n.id === ed.source)?.type === "person",
+            ).length;
+            if (partnerCount < 2) unionsToRemove.add(u);
+          });
+
+          const finalEdges = remainingEdges.filter(
+            (ed) => !unionsToRemove.has(ed.source) && !unionsToRemove.has(ed.target),
+          );
+          setTimeout(() => setEdges(finalEdges), 0);
+
+          return prevNodes.filter(
+            (n) => n.id !== id && !unionsToRemove.has(n.id),
+          );
+        });
+        return prevEdges;
+      });
+
+      if (selectedNodeIdRef.current === id) {
+        selectedNodeIdRef.current = null;
+        dispatchNodeSelected(null);
+      }
+    };
+    document.addEventListener("delete-person", handler);
+    return () => document.removeEventListener("delete-person", handler);
+  }, [setNodes, setEdges, dispatchNodeSelected]);
+
   // Listen: save-family-tree
   useEffect(() => {
     const handleSave = async () => {
