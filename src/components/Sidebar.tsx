@@ -158,6 +158,7 @@ export function Sidebar() {
       </div>
 
       {/* Tabs */}
+      {selectedId && (
       <div className="flex border-b border-brand-border dark:border-gray-700 bg-slate-100/50 dark:bg-gray-800/50">
         {tabs.map((tab) => (
           <button
@@ -173,6 +174,7 @@ export function Sidebar() {
           </button>
         ))}
       </div>
+      )}
 
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto p-4 bg-white dark:bg-gray-900">
