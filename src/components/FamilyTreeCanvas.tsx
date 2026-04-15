@@ -548,29 +548,41 @@ export function FamilyTreeCanvas() {
       const { id } = (e as CustomEvent).detail as { id: string };
       setEdges((prevEdges) => {
         setNodes((prevNodes) => {
-          const connectedUnions = new Set(
-            prevEdges
-              .filter((ed) => ed.source === id || ed.target === id)
-              .map((ed) => (ed.source === id ? ed.target : ed.source))
-              .filter((nid) => prevNodes.find((n) => n.id === nid)?.type === "union"),
-          );
+          const isPerson = (nid: string) =>
+            prevNodes.find((n) => n.id === nid)?.type === "person";
+          const isUnion = (nid: string) =>
+            prevNodes.find((n) => n.id === nid)?.type === "union";
 
-          const remainingEdges = prevEdges.filter(
+          let currentEdges = prevEdges.filter(
             (ed) => ed.source !== id && ed.target !== id,
           );
-
           const unionsToRemove = new Set<string>();
-          connectedUnions.forEach((u) => {
-            const partnerCount = remainingEdges.filter(
-              (ed) =>
-                ed.target === u &&
-                prevNodes.find((n) => n.id === ed.source)?.type === "person",
-            ).length;
-            if (partnerCount < 2) unionsToRemove.add(u);
-          });
 
-          const finalEdges = remainingEdges.filter(
-            (ed) => !unionsToRemove.has(ed.source) && !unionsToRemove.has(ed.target),
+          while (true) {
+            const newlyOrphan = prevNodes
+              .filter((n) => n.type === "union" && !unionsToRemove.has(n.id))
+              .filter((n) => {
+                const personEdgeCount = currentEdges.filter(
+                  (ed) =>
+                    (ed.source === n.id && isPerson(ed.target)) ||
+                    (ed.target === n.id && isPerson(ed.source)),
+                ).length;
+                return personEdgeCount < 2;
+              })
+              .map((n) => n.id);
+            if (newlyOrphan.length === 0) break;
+            newlyOrphan.forEach((u) => unionsToRemove.add(u));
+            currentEdges = currentEdges.filter(
+              (ed) =>
+                !unionsToRemove.has(ed.source) && !unionsToRemove.has(ed.target),
+            );
+          }
+
+          // drop edges connecting to any now-removed union (defensive)
+          const finalEdges = currentEdges.filter(
+            (ed) =>
+              !(isUnion(ed.source) && unionsToRemove.has(ed.source)) &&
+              !(isUnion(ed.target) && unionsToRemove.has(ed.target)),
           );
           setTimeout(() => setEdges(finalEdges), 0);
 
