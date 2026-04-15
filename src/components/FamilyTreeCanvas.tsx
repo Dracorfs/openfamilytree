@@ -41,19 +41,19 @@ const initialNodes: Node[] = [
   {
     id: "dad",
     type: "person",
-    position: { x: 250, y: 200 },
+    position: { x: 275, y: 200 },
     data: { name: "Dad", gender: "m" },
   },
   {
     id: "mom",
     type: "person",
-    position: { x: 550, y: 200 },
+    position: { x: 525, y: 200 },
     data: { name: "Mom", gender: "f" },
   },
   {
     id: "union-1",
     type: "union",
-    position: { x: 456, y: 220 },
+    position: { x: 471, y: 220 },
     data: {},
   },
   {
@@ -89,13 +89,13 @@ const initialEdges = [
     sourceHandle: "bottom",
     target: "me",
     targetHandle: "top",
-    type: "smoothstep",
+    type: "straight",
     style: { strokeWidth: 2, stroke: "#8D8376" },
   },
 ];
 
 const edgeDefaults = {
-  type: "smoothstep" as const,
+  type: "straight" as const,
   style: { strokeWidth: 2, stroke: "#8D8376" },
 };
 
@@ -335,23 +335,49 @@ export function FamilyTreeCanvas() {
           });
           newNodes = [...newNodes, newPerson];
         } else if (relation === "parent") {
-          newPerson.position = { x: target.position.x, y: target.position.y - 150 };
+          const dadId = newPersonId;
+          const momId = nextId("person");
           const unionId = nextId("union");
+
+          const childCenterX = target.position.x + 75;
+          const gap = 100;
+          const personW = 150;
+          const unionW = 8;
+
+          newPerson.position = { x: childCenterX - gap / 2 - personW, y: target.position.y - 150 };
+          newPerson.data = { name: "Dad", gender: "m" } as PersonData;
+
+          const momNode: Node = {
+            id: momId,
+            type: "person",
+            position: { x: childCenterX + gap / 2, y: target.position.y - 150 },
+            data: { name: "Mom", gender: "f" } as PersonData,
+          };
+
           const unionNode: Node = {
             id: unionId,
             type: "union",
-            position: { x: target.position.x + 56, y: target.position.y - 80 },
+            position: { x: childCenterX - unionW / 2, y: target.position.y - 130 },
             data: {},
           };
-          newNodes = [...newNodes, newPerson, unionNode];
+
+          newNodes = [...newNodes, newPerson, momNode, unionNode];
           newEdges.push(
             {
               id: nextId("e"),
-              source: newPersonId,
+              source: dadId,
               sourceHandle: "right",
               target: unionId,
               targetHandle: "left",
-              ...edgeDefaults,
+              ...partnerEdgeDefaults,
+            },
+            {
+              id: nextId("e"),
+              source: momId,
+              sourceHandle: "left",
+              target: unionId,
+              targetHandle: "right",
+              ...partnerEdgeDefaults,
             },
             {
               id: nextId("e"),

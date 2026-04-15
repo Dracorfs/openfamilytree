@@ -130,7 +130,7 @@ export function Sidebar() {
               onClick={() => dispatchAdd("parent")}
               className="py-1.5 text-xs font-medium bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-300 dark:border-gray-600 rounded hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors"
             >
-              + Parent
+              + Parents
             </button>
             <button
               onClick={() => dispatchAdd("child")}
