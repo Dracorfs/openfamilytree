@@ -218,6 +218,30 @@ export function FamilyTreeCanvas() {
     }
   }, [dispatchNodeSelected]);
 
+  // Broadcast person list whenever nodes change
+  useEffect(() => {
+    const persons = nodes
+      .filter((n) => n.type === "person")
+      .map((n) => ({ id: n.id, ...(n.data as PersonData) }));
+    document.dispatchEvent(
+      new CustomEvent("nodes-updated", { detail: persons }),
+    );
+  }, [nodes]);
+
+  // Listen: select-person-by-id (sidebar list click)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { id } = (e as CustomEvent).detail as { id: string };
+      const node = nodes.find((n) => n.id === id);
+      if (!node) return;
+      setNodes((nds) => nds.map((n) => ({ ...n, selected: n.id === id })));
+      selectedNodeIdRef.current = id;
+      dispatchNodeSelected(node);
+    };
+    document.addEventListener("select-person-by-id", handler);
+    return () => document.removeEventListener("select-person-by-id", handler);
+  }, [nodes, setNodes, dispatchNodeSelected]);
+
   // Listen: update-node (sidebar edits)
   useEffect(() => {
     const handler = (e: Event) => {

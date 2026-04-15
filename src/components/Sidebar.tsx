@@ -5,6 +5,7 @@ export function Sidebar() {
   const tabs = ["Personal", "Partners", "Contact", "Biography"];
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [people, setPeople] = useState<Array<{ id: string; name?: string; surname?: string; birthYear?: string; gender?: string }>>([]);
   const [personName, setPersonName] = useState("");
   const [surname, setSurname] = useState("");
   const [birthSurname, setBirthSurname] = useState("");
@@ -54,6 +55,20 @@ export function Sidebar() {
 
     document.addEventListener("node-selected", handler);
     return () => document.removeEventListener("node-selected", handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setPeople((e as CustomEvent).detail || []);
+    };
+    document.addEventListener("nodes-updated", handler);
+    return () => document.removeEventListener("nodes-updated", handler);
+  }, []);
+
+  const selectPerson = useCallback((id: string) => {
+    document.dispatchEvent(
+      new CustomEvent("select-person-by-id", { detail: { id } }),
+    );
   }, []);
 
   const dispatchUpdate = useCallback(
@@ -162,8 +177,43 @@ export function Sidebar() {
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto p-4 bg-white dark:bg-gray-900">
         {!selectedId ? (
-          <div className="text-sm text-slate-500 dark:text-gray-400 italic text-center mt-10">
-            Click a person on the tree to edit their details.
+          <div className="space-y-3">
+            <div className="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wide px-1">
+              People ({people.length})
+            </div>
+            {people.length === 0 ? (
+              <div className="text-sm text-slate-500 dark:text-gray-400 italic text-center mt-10">
+                No people yet.
+              </div>
+            ) : (
+              <ul className="space-y-1">
+                {people.map((p) => {
+                  const label = [p.name, p.surname].filter(Boolean).join(" ") || "Unnamed";
+                  const dotClass =
+                    p.gender === "f"
+                      ? "bg-pink-300"
+                      : p.gender === "m"
+                        ? "bg-blue-300"
+                        : "bg-slate-300";
+                  return (
+                    <li key={p.id}>
+                      <button
+                        onClick={() => selectPerson(p.id)}
+                        className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-left rounded hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-200 transition-colors"
+                      >
+                        <span className={`w-2 h-2 rounded-full ${dotClass}`} />
+                        <span className="flex-1 truncate">{label}</span>
+                        {p.birthYear && (
+                          <span className="text-xs text-slate-400 dark:text-gray-500">
+                            {p.birthYear}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         ) : (
           <>
