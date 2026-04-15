@@ -310,15 +310,6 @@ export function FamilyTreeCanvas() {
     dispatchNodeSelected(null);
   }, [dispatchNodeSelected]);
 
-  // Auto-select first node on mount
-  useEffect(() => {
-    const firstPerson = initialNodes.find((n) => n.type === "person");
-    if (firstPerson) {
-      selectedNodeIdRef.current = firstPerson.id;
-      setTimeout(() => dispatchNodeSelected(firstPerson), 200);
-    }
-  }, [dispatchNodeSelected]);
-
   // Re-broadcast selected node's relations whenever graph changes
   useEffect(() => {
     const id = selectedNodeIdRef.current;
