@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 
 export function Sidebar() {
   const [activeTab, setActiveTab] = useState("Personal");
-  const tabs = ["Personal", "Partners", "Contact", "Biography"];
+  const tabs = ["Personal", "Relations", "Contact", "Biography"];
+
+  type RelPerson = { id: string; name?: string; surname?: string; gender?: string };
+  const [relations, setRelations] = useState<Record<string, RelPerson[]>>({});
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [people, setPeople] = useState<Array<{ id: string; name?: string; surname?: string; birthYear?: string; gender?: string }>>([]);
@@ -36,9 +39,11 @@ export function Sidebar() {
         setPhone("");
         setAddress("");
         setBiography("");
+        setRelations({});
         return;
       }
       setSelectedId(detail.id);
+      setRelations(detail.relations || {});
       setPersonName(detail.name || "");
       setSurname(detail.surname || "");
       setBirthSurname(detail.birthSurname || "");
@@ -338,11 +343,49 @@ export function Sidebar() {
               </div>
             )}
 
-            {activeTab === "Partners" && (
-              <div className="text-sm text-slate-500 dark:text-gray-400 italic text-center mt-10">
-                No partners added yet.
-              </div>
-            )}
+            {activeTab === "Relations" && (() => {
+              const sections = Object.entries(relations).filter(([, list]) => list.length > 0);
+              if (sections.length === 0) {
+                return (
+                  <div className="text-sm text-slate-500 dark:text-gray-400 italic text-center mt-10">
+                    No relations yet.
+                  </div>
+                );
+              }
+              return (
+                <div className="space-y-4">
+                  {sections.map(([title, list]) => (
+                    <div key={title}>
+                      <div className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wide px-1 mb-1">
+                        {title}
+                      </div>
+                      <ul className="space-y-1">
+                        {list.map((p) => {
+                          const label = [p.name, p.surname].filter(Boolean).join(" ") || "Unnamed";
+                          const dotClass =
+                            p.gender === "f"
+                              ? "bg-pink-300"
+                              : p.gender === "m"
+                                ? "bg-blue-300"
+                                : "bg-slate-300";
+                          return (
+                            <li key={p.id}>
+                              <button
+                                onClick={() => selectPerson(p.id)}
+                                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-left rounded hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-200 transition-colors"
+                              >
+                                <span className={`w-2 h-2 rounded-full ${dotClass}`} />
+                                <span className="flex-1 truncate">{label}</span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
 
             {activeTab === "Contact" && (
               <div className="space-y-4">

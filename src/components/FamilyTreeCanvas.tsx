@@ -182,15 +182,114 @@ const nodeTypes = {
 /*  Main component                                                     */
 /* ------------------------------------------------------------------ */
 
+type RelPerson = { id: string; name?: string; surname?: string; gender?: string };
+type RelationsMap = Record<string, RelPerson[]>;
+
+function computeRelations(personId: string, nodes: Node[], edges: any[]): RelationsMap {
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const isUnion = (id: string) => byId.get(id)?.type === "union";
+  const isPerson = (id: string) => byId.get(id)?.type === "person";
+
+  const partnerUnionsOf = (pid: string) =>
+    edges.filter((e) => e.source === pid && isUnion(e.target)).map((e) => e.target);
+  const childrenViaUnions = (unions: string[]) => {
+    const out = new Set<string>();
+    unions.forEach((u) =>
+      edges
+        .filter((e) => e.source === u && isPerson(e.target))
+        .forEach((e) => out.add(e.target)),
+    );
+    return out;
+  };
+  const parentUnionOf = (pid: string) =>
+    edges.find((e) => e.target === pid && isUnion(e.source))?.source as string | undefined;
+  const membersOfUnion = (u: string) =>
+    edges
+      .filter((e) => e.target === u && isPerson(e.source))
+      .map((e) => e.source as string);
+
+  const partnerUnions = partnerUnionsOf(personId);
+  const partners = new Set<string>();
+  partnerUnions.forEach((u) =>
+    membersOfUnion(u)
+      .filter((id) => id !== personId)
+      .forEach((id) => partners.add(id)),
+  );
+  const children = childrenViaUnions(partnerUnions);
+
+  const parentUnion = parentUnionOf(personId);
+  const parents = new Set<string>();
+  const siblings = new Set<string>();
+  if (parentUnion) {
+    membersOfUnion(parentUnion).forEach((id) => parents.add(id));
+    edges
+      .filter((e) => e.source === parentUnion && isPerson(e.target) && e.target !== personId)
+      .forEach((e) => siblings.add(e.target));
+  }
+
+  const grandparents = new Set<string>();
+  const auntsUncles = new Set<string>();
+  parents.forEach((p) => {
+    const pu = parentUnionOf(p);
+    if (!pu) return;
+    membersOfUnion(pu).forEach((id) => grandparents.add(id));
+    edges
+      .filter((e) => e.source === pu && isPerson(e.target) && e.target !== p)
+      .forEach((e) => auntsUncles.add(e.target));
+  });
+
+  const grandchildren = childrenViaUnions(
+    Array.from(children).flatMap((c) => partnerUnionsOf(c)),
+  );
+  const cousins = childrenViaUnions(
+    Array.from(auntsUncles).flatMap((au) => partnerUnionsOf(au)),
+  );
+  const nephewsNieces = childrenViaUnions(
+    Array.from(siblings).flatMap((s) => partnerUnionsOf(s)),
+  );
+
+  const toList = (ids: Set<string>): RelPerson[] =>
+    Array.from(ids).map((id) => {
+      const d = byId.get(id)?.data as PersonData | undefined;
+      return { id, name: d?.name, surname: d?.surname, gender: d?.gender };
+    });
+
+  return {
+    Partners: toList(partners),
+    Parents: toList(parents),
+    Children: toList(children),
+    Siblings: toList(siblings),
+    Grandparents: toList(grandparents),
+    Grandchildren: toList(grandchildren),
+    "Aunts & Uncles": toList(auntsUncles),
+    Cousins: toList(cousins),
+    "Nephews & Nieces": toList(nephewsNieces),
+  };
+}
+
 export function FamilyTreeCanvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges as any);
   const selectedNodeIdRef = useRef<string | null>(null);
+  const nodesRef = useRef(nodes);
+  const edgesRef = useRef(edges);
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+  useEffect(() => {
+    edgesRef.current = edges;
+  }, [edges]);
 
   const dispatchNodeSelected = useCallback((node: Node | null) => {
     document.dispatchEvent(
       new CustomEvent("node-selected", {
-        detail: node ? { ...node.data, id: node.id } : null,
+        detail: node
+          ? {
+              ...node.data,
+              id: node.id,
+              relations: computeRelations(node.id, nodesRef.current, edgesRef.current),
+            }
+          : null,
       }),
     );
   }, []);
@@ -217,6 +316,14 @@ export function FamilyTreeCanvas() {
       setTimeout(() => dispatchNodeSelected(firstPerson), 200);
     }
   }, [dispatchNodeSelected]);
+
+  // Re-broadcast selected node's relations whenever graph changes
+  useEffect(() => {
+    const id = selectedNodeIdRef.current;
+    if (!id) return;
+    const node = nodes.find((n) => n.id === id);
+    if (node) dispatchNodeSelected(node);
+  }, [nodes, edges, dispatchNodeSelected]);
 
   // Broadcast person list whenever nodes change
   useEffect(() => {
