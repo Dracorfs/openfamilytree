@@ -12,6 +12,7 @@ import {
 } from "@xyflow/react";
 import type { Node, NodeMouseHandler } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { useTheme } from "./ThemeProvider";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -268,6 +269,7 @@ function computeRelations(personId: string, nodes: Node[], edges: any[]): Relati
 }
 
 export function FamilyTreeCanvas() {
+  const { theme } = useTheme();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges as any);
   const selectedNodeIdRef = useRef<string | null>(null);
@@ -645,15 +647,25 @@ export function FamilyTreeCanvas() {
         fitView
         minZoom={0.2}
         defaultEdgeOptions={{ zIndex: 0 }}
+        colorMode={theme}
       >
-        <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={12}
+          size={1}
+          color={theme === "dark" ? "#374151" : undefined}
+        />
         <MiniMap
           nodeColor={(n: any) => {
             if (n.data?.gender === "f") return "#F8D4D9";
             if (n.data?.gender === "m") return "#D2E3F5";
-            return "#EDE6E2";
+            return theme === "dark" ? "#4B5563" : "#EDE6E2";
           }}
           nodeStrokeWidth={3}
+          maskColor={theme === "dark" ? "rgba(0,0,0,0.6)" : "rgba(240,240,240,0.6)"}
+          style={{
+            backgroundColor: theme === "dark" ? "#1F2937" : undefined,
+          }}
           zoomable
           pannable
         />
