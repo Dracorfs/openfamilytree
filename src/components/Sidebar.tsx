@@ -112,7 +112,23 @@ export function Sidebar() {
   return (
     <aside className="w-[360px] h-full bg-white dark:bg-gray-900 border-r border-brand-border dark:border-gray-700 shadow-lg flex flex-col z-10 relative">
       {/* Sidebar Header (Person Info) */}
-      <div className="p-6 border-b border-brand-border dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50">
+      <div className="relative p-6 border-b border-brand-border dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50">
+        {selectedId && (
+          <button
+            onClick={() => deletePerson(selectedId)}
+            aria-label="Delete person"
+            title="Delete person"
+            className="absolute top-2 right-2 p-1.5 rounded text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18" />
+              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6" />
+              <path d="M14 11v6" />
+            </svg>
+          </button>
+        )}
         <div className="flex flex-col items-center">
           {selectedId && (
             <div
@@ -167,23 +183,6 @@ export function Sidebar() {
           </div>
         )}
 
-        {selectedId && (
-          <div className="mt-2">
-            <button
-              onClick={() => deletePerson(selectedId)}
-              className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 rounded hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 6h18" />
-                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                <path d="M10 11v6" />
-                <path d="M14 11v6" />
-              </svg>
-              Delete person
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Tabs */}
