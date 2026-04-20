@@ -15,13 +15,16 @@ export const Route = createRootRoute({
   component: RootComponent,
 });
 
+const themeInitScript = `(function(){try{var d=document.documentElement,t=localStorage.getItem("theme");if(t==="dark"){d.classList.add("dark");d.style.colorScheme="dark";d.style.backgroundColor="#1a1a2e";}else{d.style.colorScheme="light";d.style.backgroundColor="#FEFDFC";}}catch(e){}})();`;
+
 function RootComponent() {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <ThemeProvider>
           <Outlet />
         </ThemeProvider>

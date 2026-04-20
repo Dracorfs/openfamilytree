@@ -11,6 +11,16 @@
   --color-brand-border: #8D8376;
 }
 
+html {
+  color-scheme: light;
+  background-color: #FEFDFC;
+}
+
+html.dark {
+  color-scheme: dark;
+  background-color: #1a1a2e;
+}
+
 body {
   margin: 0;
   padding: 0;
