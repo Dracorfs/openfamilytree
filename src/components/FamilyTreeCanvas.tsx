@@ -10,9 +10,10 @@ import {
   Handle,
   BackgroundVariant,
 } from "@xyflow/react";
-import type { Node, NodeMouseHandler } from "@xyflow/react";
+import type { Node, Edge, NodeMouseHandler } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useTheme } from "./ThemeProvider";
+import { applyAutoLayout } from "../lib/treeLayout";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -38,72 +39,25 @@ interface PersonData {
 /*  Initial data                                                       */
 /* ------------------------------------------------------------------ */
 
-const initialNodes: Node[] = [
-  {
-    id: "dad",
-    type: "person",
-    position: { x: 275, y: 200 },
-    data: { name: "Dad", gender: "m" },
-  },
-  {
-    id: "mom",
-    type: "person",
-    position: { x: 525, y: 200 },
-    data: { name: "Mom", gender: "f" },
-  },
-  {
-    id: "union-1",
-    type: "union",
-    position: { x: 471, y: 220 },
-    data: {},
-  },
-  {
-    id: "me",
-    type: "person",
-    position: { x: 400, y: 350 },
-    data: { name: "Me", gender: "o" },
-  },
+const rawInitialNodes: Node[] = [
+  { id: "dad", type: "person", position: { x: 0, y: 0 }, data: { name: "Dad", gender: "m" } },
+  { id: "mom", type: "person", position: { x: 0, y: 0 }, data: { name: "Mom", gender: "f" } },
+  { id: "union-1", type: "union", position: { x: 0, y: 0 }, data: {} },
+  { id: "me", type: "person", position: { x: 0, y: 0 }, data: { name: "Me", gender: "o" } },
 ];
 
-const initialEdges = [
-  {
-    id: "e-dad-union",
-    source: "dad",
-    sourceHandle: "right",
-    target: "union-1",
-    targetHandle: "left",
-    type: "straight",
-    style: { strokeWidth: 2, stroke: "#8D8376" },
-  },
-  {
-    id: "e-mom-union",
-    source: "mom",
-    sourceHandle: "left",
-    target: "union-1",
-    targetHandle: "right",
-    type: "straight",
-    style: { strokeWidth: 2, stroke: "#8D8376" },
-  },
-  {
-    id: "e-union-me",
-    source: "union-1",
-    sourceHandle: "bottom",
-    target: "me",
-    targetHandle: "top",
-    type: "straight",
-    style: { strokeWidth: 2, stroke: "#8D8376" },
-  },
+const partnerEdgeStyle = { strokeWidth: 2, stroke: "#8D8376" };
+const childEdgeStyle = { strokeWidth: 2, stroke: "#8D8376" };
+
+const rawInitialEdges: Edge[] = [
+  { id: "e-dad-union", source: "dad", target: "union-1", type: "straight", style: partnerEdgeStyle },
+  { id: "e-mom-union", source: "mom", target: "union-1", type: "straight", style: partnerEdgeStyle },
+  { id: "e-union-me", source: "union-1", target: "me", type: "smoothstep", style: childEdgeStyle },
 ];
 
-const edgeDefaults = {
-  type: "straight" as const,
-  style: { strokeWidth: 2, stroke: "#8D8376" },
-};
-
-const partnerEdgeDefaults = {
-  type: "straight" as const,
-  style: { strokeWidth: 2, stroke: "#8D8376" },
-};
+const initial = applyAutoLayout(rawInitialNodes, rawInitialEdges);
+const initialNodes = initial.nodes;
+const initialEdges = initial.edges;
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -111,6 +65,26 @@ const partnerEdgeDefaults = {
 
 let idCounter = 100;
 const nextId = (prefix: string) => `${prefix}-${idCounter++}`;
+
+function makePartnerEdge(personId: string, unionId: string): Edge {
+  return {
+    id: nextId("e"),
+    source: personId,
+    target: unionId,
+    type: "straight",
+    style: partnerEdgeStyle,
+  };
+}
+
+function makeChildEdge(unionId: string, personId: string): Edge {
+  return {
+    id: nextId("e"),
+    source: unionId,
+    target: personId,
+    type: "smoothstep",
+    style: childEdgeStyle,
+  };
+}
 
 /* ------------------------------------------------------------------ */
 /*  Node components                                                    */
@@ -126,7 +100,7 @@ function PersonNode({ data, selected }: any) {
 
   return (
     <div
-      className={`relative px-4 py-2 shadow-md rounded-md bg-white dark:bg-gray-800 border-2 ${borderColor} min-w-[120px] text-center cursor-pointer hover:shadow-lg transition-shadow ${
+      className={`relative px-4 py-2 shadow-md rounded-md bg-white dark:bg-gray-800 border-2 ${borderColor} w-[152px] text-center cursor-pointer hover:shadow-lg transition-shadow ${
         selected ? "ring-2 ring-brand-link dark:ring-blue-400 ring-offset-1 dark:ring-offset-gray-900" : ""
       }`}
     >
@@ -137,7 +111,7 @@ function PersonNode({ data, selected }: any) {
       <Handle type="target" position={Position.Left} id="target-left" className="opacity-0" />
       <Handle type="target" position={Position.Right} id="target-right" className="opacity-0" />
 
-      <div className="font-bold text-slate-800 dark:text-gray-100">{data.name}</div>
+      <div className="font-bold text-slate-800 dark:text-gray-100 truncate">{data.name}</div>
       {data.birthYear && <div className="text-xs text-slate-500 dark:text-gray-400">{data.birthYear}</div>}
     </div>
   );
@@ -146,30 +120,10 @@ function PersonNode({ data, selected }: any) {
 function UnionNode() {
   return (
     <div className="w-2 h-2 bg-slate-400 dark:bg-gray-500 rounded-full shadow-sm relative pointer-events-none cursor-default">
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="left"
-        className="opacity-0 absolute -left-1 !pointer-events-none"
-      />
-      <Handle
-        type="target"
-        position={Position.Right}
-        id="right"
-        className="opacity-0 absolute -right-1 !pointer-events-none"
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="bottom"
-        className="opacity-0 absolute -bottom-1 !pointer-events-none"
-      />
-      <Handle
-        type="target"
-        position={Position.Top}
-        id="top"
-        className="opacity-0 absolute -top-1 !pointer-events-none"
-      />
+      <Handle type="target" position={Position.Left} id="left" className="opacity-0 absolute -left-1 !pointer-events-none" />
+      <Handle type="target" position={Position.Right} id="right" className="opacity-0 absolute -right-1 !pointer-events-none" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="opacity-0 absolute -bottom-1 !pointer-events-none" />
+      <Handle type="target" position={Position.Top} id="top" className="opacity-0 absolute -top-1 !pointer-events-none" />
     </div>
   );
 }
@@ -180,13 +134,13 @@ const nodeTypes = {
 };
 
 /* ------------------------------------------------------------------ */
-/*  Main component                                                     */
+/*  Relations                                                          */
 /* ------------------------------------------------------------------ */
 
 type RelPerson = { id: string; name?: string; surname?: string; gender?: string };
 type RelationsMap = Record<string, RelPerson[]>;
 
-function computeRelations(personId: string, nodes: Node[], edges: any[]): RelationsMap {
+function computeRelations(personId: string, nodes: Node[], edges: Edge[]): RelationsMap {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const isUnion = (id: string) => byId.get(id)?.type === "union";
   const isPerson = (id: string) => byId.get(id)?.type === "person";
@@ -205,16 +159,12 @@ function computeRelations(personId: string, nodes: Node[], edges: any[]): Relati
   const parentUnionOf = (pid: string) =>
     edges.find((e) => e.target === pid && isUnion(e.source))?.source as string | undefined;
   const membersOfUnion = (u: string) =>
-    edges
-      .filter((e) => e.target === u && isPerson(e.source))
-      .map((e) => e.source as string);
+    edges.filter((e) => e.target === u && isPerson(e.source)).map((e) => e.source as string);
 
   const partnerUnions = partnerUnionsOf(personId);
   const partners = new Set<string>();
   partnerUnions.forEach((u) =>
-    membersOfUnion(u)
-      .filter((id) => id !== personId)
-      .forEach((id) => partners.add(id)),
+    membersOfUnion(u).filter((id) => id !== personId).forEach((id) => partners.add(id)),
   );
   const children = childrenViaUnions(partnerUnions);
 
@@ -239,15 +189,9 @@ function computeRelations(personId: string, nodes: Node[], edges: any[]): Relati
       .forEach((e) => auntsUncles.add(e.target));
   });
 
-  const grandchildren = childrenViaUnions(
-    Array.from(children).flatMap((c) => partnerUnionsOf(c)),
-  );
-  const cousins = childrenViaUnions(
-    Array.from(auntsUncles).flatMap((au) => partnerUnionsOf(au)),
-  );
-  const nephewsNieces = childrenViaUnions(
-    Array.from(siblings).flatMap((s) => partnerUnionsOf(s)),
-  );
+  const grandchildren = childrenViaUnions(Array.from(children).flatMap((c) => partnerUnionsOf(c)));
+  const cousins = childrenViaUnions(Array.from(auntsUncles).flatMap((au) => partnerUnionsOf(au)));
+  const nephewsNieces = childrenViaUnions(Array.from(siblings).flatMap((s) => partnerUnionsOf(s)));
 
   const toList = (ids: Set<string>): RelPerson[] =>
     Array.from(ids).map((id) => {
@@ -268,10 +212,14 @@ function computeRelations(personId: string, nodes: Node[], edges: any[]): Relati
   };
 }
 
+/* ------------------------------------------------------------------ */
+/*  Main component                                                     */
+/* ------------------------------------------------------------------ */
+
 export function FamilyTreeCanvas() {
   const { theme } = useTheme();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges as any);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const selectedNodeIdRef = useRef<string | null>(null);
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
@@ -310,7 +258,6 @@ export function FamilyTreeCanvas() {
     dispatchNodeSelected(null);
   }, [dispatchNodeSelected]);
 
-  // Re-broadcast selected node's relations whenever graph changes
   useEffect(() => {
     const id = selectedNodeIdRef.current;
     if (!id) return;
@@ -318,21 +265,17 @@ export function FamilyTreeCanvas() {
     if (node) dispatchNodeSelected(node);
   }, [nodes, edges, dispatchNodeSelected]);
 
-  // Broadcast person list whenever nodes change
   useEffect(() => {
     const persons = nodes
       .filter((n) => n.type === "person")
       .map((n) => ({ id: n.id, ...(n.data as PersonData) }));
-    document.dispatchEvent(
-      new CustomEvent("nodes-updated", { detail: persons }),
-    );
+    document.dispatchEvent(new CustomEvent("nodes-updated", { detail: persons }));
   }, [nodes]);
 
-  // Listen: select-person-by-id (sidebar list click)
   useEffect(() => {
     const handler = (e: Event) => {
       const { id } = (e as CustomEvent).detail as { id: string };
-      const node = nodes.find((n) => n.id === id);
+      const node = nodesRef.current.find((n) => n.id === id);
       if (!node) return;
       setNodes((nds) => nds.map((n) => ({ ...n, selected: n.id === id })));
       selectedNodeIdRef.current = id;
@@ -340,24 +283,20 @@ export function FamilyTreeCanvas() {
     };
     document.addEventListener("select-person-by-id", handler);
     return () => document.removeEventListener("select-person-by-id", handler);
-  }, [nodes, setNodes, dispatchNodeSelected]);
+  }, [setNodes, dispatchNodeSelected]);
 
-  // Listen: update-node (sidebar edits)
   useEffect(() => {
     const handler = (e: Event) => {
       const { nodeId, data } = (e as CustomEvent).detail;
       setNodes((nds) =>
-        nds.map((n) => {
-          if (n.id !== nodeId) return n;
-          return { ...n, data: { ...n.data, ...data } };
-        }),
+        nds.map((n) => (n.id !== nodeId ? n : { ...n, data: { ...n.data, ...data } })),
       );
     };
     document.addEventListener("update-node", handler);
     return () => document.removeEventListener("update-node", handler);
   }, [setNodes]);
 
-  // Listen: add-person (sidebar buttons)
+  /* -------- Add person -------- */
   useEffect(() => {
     const handler = (e: Event) => {
       const { relation, targetNodeId } = (e as CustomEvent).detail as {
@@ -365,229 +304,139 @@ export function FamilyTreeCanvas() {
         targetNodeId: string;
       };
 
-      setNodes((prevNodes) => {
-        const target = prevNodes.find((n) => n.id === targetNodeId);
-        if (!target) return prevNodes;
+      const prevNodes = nodesRef.current;
+      const prevEdges = edgesRef.current;
+      const target = prevNodes.find((n) => n.id === targetNodeId);
+      if (!target) return;
 
-        const newPersonId = nextId("person");
-        const newPerson: Node = {
-          id: newPersonId,
+      const newPersonId = nextId("person");
+      const newPerson: Node = {
+        id: newPersonId,
+        type: "person",
+        position: { x: 0, y: 0 },
+        data: { name: "New Person", gender: "o" } as PersonData,
+      };
+
+      let workingNodes: Node[] = [...prevNodes];
+      let workingEdges: Edge[] = [...prevEdges];
+
+      if (relation === "partner") {
+        const unionId = nextId("union");
+        const unionNode: Node = {
+          id: unionId,
+          type: "union",
+          position: { x: 0, y: 0 },
+          data: {},
+        };
+        workingNodes.push(newPerson, unionNode);
+        workingEdges.push(
+          makePartnerEdge(targetNodeId, unionId),
+          makePartnerEdge(newPersonId, unionId),
+        );
+      } else if (relation === "child") {
+        let unionId = prevEdges.find(
+          (ed) => ed.source === targetNodeId && prevNodes.find((n) => n.id === ed.target)?.type === "union",
+        )?.target as string | undefined;
+
+        if (!unionId) {
+          unionId = nextId("union");
+          const unionNode: Node = {
+            id: unionId,
+            type: "union",
+            position: { x: 0, y: 0 },
+            data: {},
+          };
+          workingNodes.push(unionNode);
+          workingEdges.push(makePartnerEdge(targetNodeId, unionId));
+        }
+        workingNodes.push(newPerson);
+        workingEdges.push(makeChildEdge(unionId, newPersonId));
+      } else if (relation === "parent") {
+        const hasParentAlready = prevEdges.some(
+          (ed) => ed.target === targetNodeId && prevNodes.find((n) => n.id === ed.source)?.type === "union",
+        );
+        if (hasParentAlready) return;
+
+        const dadId = newPersonId;
+        const momId = nextId("person");
+        const unionId = nextId("union");
+
+        newPerson.data = { name: "Dad", gender: "m" } as PersonData;
+        const momNode: Node = {
+          id: momId,
           type: "person",
           position: { x: 0, y: 0 },
-          data: { name: "New Person", gender: "o" } as PersonData,
+          data: { name: "Mom", gender: "f" } as PersonData,
         };
+        const unionNode: Node = {
+          id: unionId,
+          type: "union",
+          position: { x: 0, y: 0 },
+          data: {},
+        };
+        workingNodes.push(newPerson, momNode, unionNode);
+        workingEdges.push(
+          makePartnerEdge(dadId, unionId),
+          makePartnerEdge(momId, unionId),
+          makeChildEdge(unionId, targetNodeId),
+        );
+      }
 
-        let newNodes = [...prevNodes];
-        const newEdges: typeof initialEdges = [];
+      const laid = applyAutoLayout(workingNodes, workingEdges);
+      const finalNodes = laid.nodes.map((n) => ({ ...n, selected: n.id === newPersonId }));
+      selectedNodeIdRef.current = newPersonId;
+      setNodes(finalNodes);
+      setEdges(laid.edges);
 
-        if (relation === "partner") {
-          newPerson.position = { x: target.position.x + 300, y: target.position.y };
-          const unionId = nextId("union");
-          const unionNode: Node = {
-            id: unionId,
-            type: "union",
-            position: { x: target.position.x + 206, y: target.position.y + 20 },
-            data: {},
-          };
-          newNodes = [...newNodes, newPerson, unionNode];
-          newEdges.push(
-            {
-              id: nextId("e"),
-              source: targetNodeId,
-              sourceHandle: "right",
-              target: unionId,
-              targetHandle: "left",
-              ...partnerEdgeDefaults,
-            },
-            {
-              id: nextId("e"),
-              source: newPersonId,
-              sourceHandle: "left",
-              target: unionId,
-              targetHandle: "right",
-              ...partnerEdgeDefaults,
-            },
-          );
-        } else if (relation === "child") {
-          newPerson.position = { x: target.position.x, y: target.position.y + 150 };
-          setEdges((prevEdges) => {
-            const unionEdge = prevEdges.find(
-              (edge) =>
-                edge.source === targetNodeId &&
-                prevNodes.find((n) => n.id === edge.target && n.type === "union"),
-            );
-            if (unionEdge) {
-              const childEdge = {
-                id: nextId("e"),
-                source: unionEdge.target,
-                sourceHandle: "bottom",
-                target: newPersonId,
-                targetHandle: "top",
-                ...edgeDefaults,
-              };
-              return [...prevEdges, childEdge, ...newEdges];
-            } else {
-              const unionId = nextId("union");
-              const unionNode: Node = {
-                id: unionId,
-                type: "union",
-                position: { x: target.position.x + 56, y: target.position.y + 20 },
-                data: {},
-              };
-              newNodes.push(unionNode);
-              return [
-                ...prevEdges,
-                {
-                  id: nextId("e"),
-                  source: targetNodeId,
-                  sourceHandle: "right",
-                  target: unionId,
-                  targetHandle: "left",
-                  ...edgeDefaults,
-                },
-                {
-                  id: nextId("e"),
-                  source: unionId,
-                  sourceHandle: "bottom",
-                  target: newPersonId,
-                  targetHandle: "top",
-                  ...edgeDefaults,
-                },
-                ...newEdges,
-              ];
-            }
-          });
-          newNodes = [...newNodes, newPerson];
-        } else if (relation === "parent") {
-          const dadId = newPersonId;
-          const momId = nextId("person");
-          const unionId = nextId("union");
-
-          const childCenterX = target.position.x + 75;
-          const gap = 100;
-          const personW = 150;
-          const unionW = 8;
-
-          newPerson.position = { x: childCenterX - gap / 2 - personW, y: target.position.y - 150 };
-          newPerson.data = { name: "Dad", gender: "m" } as PersonData;
-
-          const momNode: Node = {
-            id: momId,
-            type: "person",
-            position: { x: childCenterX + gap / 2, y: target.position.y - 150 },
-            data: { name: "Mom", gender: "f" } as PersonData,
-          };
-
-          const unionNode: Node = {
-            id: unionId,
-            type: "union",
-            position: { x: childCenterX - unionW / 2, y: target.position.y - 130 },
-            data: {},
-          };
-
-          newNodes = [...newNodes, newPerson, momNode, unionNode];
-          newEdges.push(
-            {
-              id: nextId("e"),
-              source: dadId,
-              sourceHandle: "right",
-              target: unionId,
-              targetHandle: "left",
-              ...partnerEdgeDefaults,
-            },
-            {
-              id: nextId("e"),
-              source: momId,
-              sourceHandle: "left",
-              target: unionId,
-              targetHandle: "right",
-              ...partnerEdgeDefaults,
-            },
-            {
-              id: nextId("e"),
-              source: unionId,
-              sourceHandle: "bottom",
-              target: targetNodeId,
-              targetHandle: "top",
-              ...edgeDefaults,
-            },
-          );
-        }
-
-        if (relation !== "child") {
-          setEdges((prev) => [...prev, ...newEdges]);
-        }
-
-        selectedNodeIdRef.current = newPersonId;
-        const finalNodes = newNodes.map((n) => ({
-          ...n,
-          selected: n.id === newPersonId,
-        }));
-        setTimeout(() => {
-          document.dispatchEvent(
-            new CustomEvent("select-person-by-id", {
-              detail: { id: newPersonId },
-            }),
-          );
-        }, 50);
-        return finalNodes;
-      });
+      setTimeout(() => {
+        document.dispatchEvent(
+          new CustomEvent("select-person-by-id", { detail: { id: newPersonId } }),
+        );
+      }, 50);
     };
 
     document.addEventListener("add-person", handler);
     return () => document.removeEventListener("add-person", handler);
-  }, [setNodes, setEdges, dispatchNodeSelected]);
+  }, [setNodes, setEdges]);
 
-  // Listen: delete-person
+  /* -------- Delete person -------- */
   useEffect(() => {
     const handler = (e: Event) => {
       const { id } = (e as CustomEvent).detail as { id: string };
-      setEdges((prevEdges) => {
-        setNodes((prevNodes) => {
-          const isPerson = (nid: string) =>
-            prevNodes.find((n) => n.id === nid)?.type === "person";
-          const isUnion = (nid: string) =>
-            prevNodes.find((n) => n.id === nid)?.type === "union";
+      const prevNodes = nodesRef.current;
+      const prevEdges = edgesRef.current;
 
-          let currentEdges = prevEdges.filter(
-            (ed) => ed.source !== id && ed.target !== id,
-          );
-          const unionsToRemove = new Set<string>();
+      const isPerson = (nid: string) => prevNodes.find((n) => n.id === nid)?.type === "person";
 
-          while (true) {
-            const newlyOrphan = prevNodes
-              .filter((n) => n.type === "union" && !unionsToRemove.has(n.id))
-              .filter((n) => {
-                const personEdgeCount = currentEdges.filter(
-                  (ed) =>
-                    (ed.source === n.id && isPerson(ed.target)) ||
-                    (ed.target === n.id && isPerson(ed.source)),
-                ).length;
-                return personEdgeCount < 2;
-              })
-              .map((n) => n.id);
-            if (newlyOrphan.length === 0) break;
-            newlyOrphan.forEach((u) => unionsToRemove.add(u));
-            currentEdges = currentEdges.filter(
+      let remainingEdges = prevEdges.filter((ed) => ed.source !== id && ed.target !== id);
+      const unionsToRemove = new Set<string>();
+
+      while (true) {
+        const newlyOrphan = prevNodes
+          .filter((n) => n.type === "union" && !unionsToRemove.has(n.id))
+          .filter((n) => {
+            const cnt = remainingEdges.filter(
               (ed) =>
-                !unionsToRemove.has(ed.source) && !unionsToRemove.has(ed.target),
-            );
-          }
+                (ed.source === n.id && isPerson(ed.target)) ||
+                (ed.target === n.id && isPerson(ed.source)),
+            ).length;
+            return cnt < 2;
+          })
+          .map((n) => n.id);
+        if (newlyOrphan.length === 0) break;
+        newlyOrphan.forEach((u) => unionsToRemove.add(u));
+        remainingEdges = remainingEdges.filter(
+          (ed) => !unionsToRemove.has(ed.source) && !unionsToRemove.has(ed.target),
+        );
+      }
 
-          // drop edges connecting to any now-removed union (defensive)
-          const finalEdges = currentEdges.filter(
-            (ed) =>
-              !(isUnion(ed.source) && unionsToRemove.has(ed.source)) &&
-              !(isUnion(ed.target) && unionsToRemove.has(ed.target)),
-          );
-          setTimeout(() => setEdges(finalEdges), 0);
+      const remainingNodes = prevNodes.filter(
+        (n) => n.id !== id && !unionsToRemove.has(n.id),
+      );
 
-          return prevNodes.filter(
-            (n) => n.id !== id && !unionsToRemove.has(n.id),
-          );
-        });
-        return prevEdges;
-      });
+      const laid = applyAutoLayout(remainingNodes, remainingEdges);
+      setNodes(laid.nodes);
+      setEdges(laid.edges);
 
       if (selectedNodeIdRef.current === id) {
         selectedNodeIdRef.current = null;
@@ -598,7 +447,6 @@ export function FamilyTreeCanvas() {
     return () => document.removeEventListener("delete-person", handler);
   }, [setNodes, setEdges, dispatchNodeSelected]);
 
-  // Listen: save-family-tree
   useEffect(() => {
     const handleSave = async () => {
       try {
@@ -608,17 +456,13 @@ export function FamilyTreeCanvas() {
           body: JSON.stringify({ nodes, edges }),
         });
         const result = await response.json();
-        if (result.success) {
-          alert("Family tree saved successfully!");
-        } else {
-          alert("Failed to save family tree: " + result.error);
-        }
+        if (result.success) alert("Family tree saved successfully!");
+        else alert("Failed to save family tree: " + result.error);
       } catch (err) {
         console.error(err);
         alert("An error occurred while saving.");
       }
     };
-
     document.addEventListener("save-family-tree", handleSave);
     return () => document.removeEventListener("save-family-tree", handleSave);
   }, [nodes, edges]);
@@ -654,9 +498,7 @@ export function FamilyTreeCanvas() {
           }}
           nodeStrokeWidth={3}
           maskColor={theme === "dark" ? "rgba(0,0,0,0.6)" : "rgba(240,240,240,0.6)"}
-          style={{
-            backgroundColor: theme === "dark" ? "#1F2937" : undefined,
-          }}
+          style={{ backgroundColor: theme === "dark" ? "#1F2937" : undefined }}
           zoomable
           pannable
         />
