@@ -58,11 +58,14 @@ type SubtreeResult = {
 
 type NodeKind = "person" | "union";
 
+type DeferredUnion = { unionId: string };
+
 function layoutSubtree(
   anchorId: string,
   g: GraphMaps,
   claimed: Set<string>,
   kinds: Map<string, NodeKind>,
+  deferred: Map<string, DeferredUnion>,
 ): SubtreeResult {
   claimed.add(anchorId);
   const positions: Positions = new Map();
@@ -76,13 +79,19 @@ function layoutSubtree(
   const blocks: UnionBlock[] = [];
 
   for (const u of g.partnerUnionsOf.get(anchorId) ?? []) {
-    const others = (g.unionMembers.get(u) ?? []).filter(
-      (p) => p !== anchorId && !claimed.has(p),
-    );
-    const partner = others[0] ?? null;
+    const allOthers = (g.unionMembers.get(u) ?? []).filter((p) => p !== anchorId);
+    const rawPartner = allOthers[0] ?? null;
+    // Defer the union if the partner has their own ancestors: they belong to a
+    // separate root tree and will be positioned there. We place the union
+    // between the two partners after both root trees are laid out.
+    if (rawPartner && g.parentUnionOf.has(rawPartner)) {
+      if (!deferred.has(u)) deferred.set(u, { unionId: u });
+      continue;
+    }
+    const partner = allOthers.find((p) => !claimed.has(p)) ?? null;
     if (partner) claimed.add(partner);
     const kids = (g.unionChildren.get(u) ?? []).filter((c) => !claimed.has(c));
-    const kidSubtrees = kids.map((k) => layoutSubtree(k, g, claimed, kinds));
+    const kidSubtrees = kids.map((k) => layoutSubtree(k, g, claimed, kinds, deferred));
 
     let cw = 0;
     kidSubtrees.forEach((s, i) => {
@@ -140,14 +149,27 @@ function layoutSubtree(
 
   const childYBase = PERSON_H + V_GAP;
   blocks.forEach((b, i) => {
-    if (b.childrenWidth === 0) return;
-    let childCursor = unionCenters[i] - b.childrenWidth / 2;
+    if (b.childSubtrees.length === 0) return;
+    let cursor = 0;
+    const subtreeLefts: number[] = [];
+    const anchors: number[] = [];
     b.childSubtrees.forEach((st, k) => {
-      if (k > 0) childCursor += H_GAP;
+      if (k > 0) cursor += H_GAP;
+      subtreeLefts.push(cursor);
+      anchors.push(cursor + st.anchorCenterX);
+      cursor += st.width;
+    });
+    const n = anchors.length;
+    const median =
+      n % 2 === 1
+        ? anchors[(n - 1) / 2]
+        : (anchors[n / 2 - 1] + anchors[n / 2]) / 2;
+    const shift = unionCenters[i] - median;
+    b.childSubtrees.forEach((st, k) => {
+      const childCursor = subtreeLefts[k] + shift;
       for (const [nid, pos] of st.positions) {
         positions.set(nid, { x: pos.x + childCursor, y: pos.y + childYBase });
       }
-      childCursor += st.width;
     });
   });
 
@@ -176,10 +198,9 @@ export function computeAutoLayout(
   const g = buildMaps(nodes, edges);
   const claimed = new Set<string>();
   const kinds = new Map<string, NodeKind>();
+  const deferred = new Map<string, DeferredUnion>();
 
   const persons = nodes.filter((n) => n.type === "person");
-
-  const rootTrees: SubtreeResult[] = [];
 
   const trueRoots = persons.filter((p) => {
     if (g.parentUnionOf.has(p.id)) return false;
@@ -192,27 +213,82 @@ export function computeAutoLayout(
     return !partnerHasParents;
   });
 
+  const finalPositions = new Map<string, { x: number; y: number }>();
+  let rootCursor = 0;
+  const placeTree = (subtree: SubtreeResult, isFirst: boolean) => {
+    if (!isFirst) rootCursor += ROOT_GAP;
+    for (const [id, pos] of subtree.positions) {
+      finalPositions.set(id, { x: pos.x + rootCursor, y: pos.y });
+    }
+    rootCursor += subtree.width;
+  };
+
+  let placedAny = false;
   for (const p of trueRoots) {
     if (claimed.has(p.id)) continue;
-    const subtree = layoutSubtree(p.id, g, claimed, kinds);
-    rootTrees.push(subtree);
+    const subtree = layoutSubtree(p.id, g, claimed, kinds, deferred);
+    placeTree(subtree, !placedAny);
+    placedAny = true;
+  }
+
+  // Process deferred unions (couple unions whose two partners each belong to
+  // separate root trees). Place each union at the midpoint of its partners and
+  // lay out its children subtree centered below.
+  const pending = [...deferred.keys()];
+  deferred.clear();
+  while (pending.length > 0) {
+    const uId = pending.shift()!;
+    const members = g.unionMembers.get(uId) ?? [];
+    if (members.length < 2) continue;
+    const a = members[0];
+    const b = members[1];
+    const ap = finalPositions.get(a);
+    const bp = finalPositions.get(b);
+    if (!ap || !bp) continue;
+    const aCenter = ap.x + PERSON_W / 2;
+    const bCenter = bp.x + PERSON_W / 2;
+    const uCenter = (aCenter + bCenter) / 2;
+    const uY = ap.y + (PERSON_H - UNION_H) / 2;
+    finalPositions.set(uId, { x: uCenter - UNION_W / 2, y: uY });
+    kinds.set(uId, "union");
+    claimed.add(uId);
+
+    const kidIds = (g.unionChildren.get(uId) ?? []).filter((k) => !claimed.has(k));
+    if (kidIds.length === 0) continue;
+    const kidSubtrees = kidIds.map((k) => layoutSubtree(k, g, claimed, kinds, deferred));
+    for (const newU of deferred.keys()) pending.push(newU);
+    deferred.clear();
+
+    let cursor = 0;
+    const lefts: number[] = [];
+    const anchors: number[] = [];
+    kidSubtrees.forEach((st, k) => {
+      if (k > 0) cursor += H_GAP;
+      lefts.push(cursor);
+      anchors.push(cursor + st.anchorCenterX);
+      cursor += st.width;
+    });
+    const n = anchors.length;
+    const median =
+      n % 2 === 1
+        ? anchors[(n - 1) / 2]
+        : (anchors[n / 2 - 1] + anchors[n / 2]) / 2;
+    const shift = uCenter - median;
+    const childY = ap.y + PERSON_H + V_GAP;
+    kidSubtrees.forEach((st, k) => {
+      const left = lefts[k] + shift;
+      for (const [nid, pos] of st.positions) {
+        finalPositions.set(nid, { x: pos.x + left, y: pos.y + childY });
+      }
+    });
   }
 
   for (const n of persons) {
     if (claimed.has(n.id)) continue;
-    const subtree = layoutSubtree(n.id, g, claimed, kinds);
-    rootTrees.push(subtree);
+    const subtree = layoutSubtree(n.id, g, claimed, kinds, deferred);
+    placeTree(subtree, !placedAny);
+    placedAny = true;
   }
-
-  const finalPositions = new Map<string, { x: number; y: number }>();
-  let rootCursor = 0;
-  rootTrees.forEach((rt, i) => {
-    if (i > 0) rootCursor += ROOT_GAP;
-    for (const [id, pos] of rt.positions) {
-      finalPositions.set(id, { x: pos.x + rootCursor, y: pos.y });
-    }
-    rootCursor += rt.width;
-  });
 
   for (const n of nodes) {
     if (!finalPositions.has(n.id)) {

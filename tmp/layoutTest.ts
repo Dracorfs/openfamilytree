@@ -218,6 +218,149 @@ function checkNoOverlap(label: string, laid: any) {
   checkNoOverlap("8", laid);
 }
 
+// Scenario 10: Both Dad and Mom have a set of parents (the buggy case)
+{
+  const nodes = [
+    mkPerson("gpA", "GpA"),
+    mkPerson("gmA", "GmA"),
+    mkUnion("uA"),
+    mkPerson("gpB", "GpB"),
+    mkPerson("gmB", "GmB"),
+    mkUnion("uB"),
+    mkPerson("dad", "Dad"),
+    mkPerson("mom", "Mom"),
+    mkUnion("u1"),
+    mkPerson("me", "Me"),
+  ];
+  const edges = [
+    edge("eA1", "gpA", "uA"),
+    edge("eA2", "gmA", "uA"),
+    edge("eA3", "uA", "dad"),
+    edge("eB1", "gpB", "uB"),
+    edge("eB2", "gmB", "uB"),
+    edge("eB3", "uB", "mom"),
+    edge("e1", "dad", "u1"),
+    edge("e2", "mom", "u1"),
+    edge("e3", "u1", "me"),
+  ];
+  const laid = dump("10. Both Dad and Mom have parents", nodes, edges);
+  checkNoOverlap("10", laid);
+
+  const byId: Record<string, { x: number; y: number }> = {};
+  for (const n of laid.nodes) byId[n.id] = n.position;
+  const dadCenter = byId.dad.x + PERSON_W / 2;
+  const momCenter = byId.mom.x + PERSON_W / 2;
+  const uACenter = byId.uA.x + UNION_W / 2;
+  const uBCenter = byId.uB.x + UNION_W / 2;
+  const meCenter = byId.me.x + PERSON_W / 2;
+  const u1Center = byId.u1.x + UNION_W / 2;
+  const dadOffset = Math.abs(uACenter - dadCenter);
+  const momOffset = Math.abs(uBCenter - momCenter);
+  const meOffset = Math.abs(u1Center - meCenter);
+  console.log(`  dad→uA offset: ${dadOffset}  mom→uB offset: ${momOffset}  me→u1 offset: ${meOffset}`);
+  if (dadOffset > 2) console.log(`  ⚠ Dad not centered under GpA+GmA union (${dadOffset})`);
+  if (momOffset > 2) console.log(`  ⚠ Mom not centered under GpB+GmB union (${momOffset})`);
+  if (meOffset > 2) console.log(`  ⚠ Me not centered under Dad+Mom union (${meOffset})`);
+  // symmetry: the two grandparent sets should be equidistant from Me
+  const uA_to_me = Math.abs(uACenter - meCenter);
+  const uB_to_me = Math.abs(uBCenter - meCenter);
+  const asym = Math.abs(uA_to_me - uB_to_me);
+  console.log(`  uA→me: ${uA_to_me}  uB→me: ${uB_to_me}  asymmetry: ${asym}`);
+  if (asym > 4) console.log(`  ⚠ Asymmetric grandparent placement (diff ${asym})`);
+}
+
+// Scenario 11: Only Mom has parents (Dad floating, no grandparents on his side)
+{
+  const nodes = [
+    mkPerson("gpB", "GpB"),
+    mkPerson("gmB", "GmB"),
+    mkUnion("uB"),
+    mkPerson("dad", "Dad"),
+    mkPerson("mom", "Mom"),
+    mkUnion("u1"),
+    mkPerson("me", "Me"),
+  ];
+  const edges = [
+    edge("eB1", "gpB", "uB"),
+    edge("eB2", "gmB", "uB"),
+    edge("eB3", "uB", "mom"),
+    edge("e1", "dad", "u1"),
+    edge("e2", "mom", "u1"),
+    edge("e3", "u1", "me"),
+  ];
+  const laid = dump("11. Only Mom has parents", nodes, edges);
+  checkNoOverlap("11", laid);
+}
+
+// Scenario 12: Both Dad and Mom have parents AND a sibling for Me
+{
+  const nodes = [
+    mkPerson("gpA", "GpA"),
+    mkPerson("gmA", "GmA"),
+    mkUnion("uA"),
+    mkPerson("gpB", "GpB"),
+    mkPerson("gmB", "GmB"),
+    mkUnion("uB"),
+    mkPerson("dad", "Dad"),
+    mkPerson("mom", "Mom"),
+    mkUnion("u1"),
+    mkPerson("me", "Me"),
+    mkPerson("sib", "Sib"),
+  ];
+  const edges = [
+    edge("eA1", "gpA", "uA"),
+    edge("eA2", "gmA", "uA"),
+    edge("eA3", "uA", "dad"),
+    edge("eB1", "gpB", "uB"),
+    edge("eB2", "gmB", "uB"),
+    edge("eB3", "uB", "mom"),
+    edge("e1", "dad", "u1"),
+    edge("e2", "mom", "u1"),
+    edge("e3", "u1", "me"),
+    edge("e4", "u1", "sib"),
+  ];
+  const laid = dump("12. Both have parents + sibling", nodes, edges);
+  checkNoOverlap("12", laid);
+  const byId: Record<string, { x: number; y: number }> = {};
+  for (const n of laid.nodes) byId[n.id] = n.position;
+  const u1Center = byId.u1.x + UNION_W / 2;
+  const meCenter = byId.me.x + PERSON_W / 2;
+  const sibCenter = byId.sib.x + PERSON_W / 2;
+  const kidMid = (meCenter + sibCenter) / 2;
+  if (Math.abs(kidMid - u1Center) > 2) console.log(`  ⚠ Kids not centered under u1 (mid=${kidMid}, u1=${u1Center})`);
+}
+
+// Scenario 13: Both have parents, Dad also has a sibling — asymmetric grandparent subtree widths
+{
+  const nodes = [
+    mkPerson("gpA", "GpA"),
+    mkPerson("gmA", "GmA"),
+    mkUnion("uA"),
+    mkPerson("dad", "Dad"),
+    mkPerson("uncle", "Uncle"),
+    mkPerson("gpB", "GpB"),
+    mkPerson("gmB", "GmB"),
+    mkUnion("uB"),
+    mkPerson("mom", "Mom"),
+    mkUnion("u1"),
+    mkPerson("me", "Me"),
+  ];
+  const edges = [
+    edge("eA1", "gpA", "uA"),
+    edge("eA2", "gmA", "uA"),
+    edge("eA3", "uA", "dad"),
+    edge("eA4", "uA", "uncle"),
+    edge("eB1", "gpB", "uB"),
+    edge("eB2", "gmB", "uB"),
+    edge("eB3", "uB", "mom"),
+    edge("e1", "dad", "u1"),
+    edge("e2", "mom", "u1"),
+    edge("e3", "u1", "me"),
+  ];
+  const laid = dump("13. Asymmetric grandparent widths", nodes, edges);
+  checkNoOverlap("13", laid);
+}
+
 // Scenario 9: Delete-simulated — middle child of GP removed (no longer in edges)
 {
   const nodes = [
