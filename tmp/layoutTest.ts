@@ -52,12 +52,51 @@ function checkNoOverlap(label: string, laid: any) {
   }
 }
 
+function checkHandles(label: string, laid: any) {
+  const typeById = new Map<string, string>(laid.nodes.map((n: any) => [n.id, n.type]));
+  const posById = new Map<string, { x: number; y: number }>(
+    laid.nodes.map((n: any) => [n.id, n.position]),
+  );
+  let bad = 0;
+  for (const e of laid.edges) {
+    const ss = (e as any).sourceHandle;
+    const tt = (e as any).targetHandle;
+    const sType = typeById.get(e.source);
+    const tType = typeById.get(e.target);
+    // partner edge: person → union — must be bottom→top (line leaves parent underside)
+    if (sType === "person" && tType === "union") {
+      if (ss !== "bottom" || tt !== "top") {
+        console.log(`  ⚠ HANDLE ${label}: partner edge ${e.id} expected bottom→top, got ${ss}→${tt}`);
+        bad++;
+      }
+      // parent must be above union with enough drop for smoothstep to route
+      // cleanly (React Flow default offset is 20px per end → need ≥40px gap)
+      const pp = posById.get(e.source)!;
+      const up = posById.get(e.target)!;
+      const drop = up.y - (pp.y + PERSON_H);
+      if (drop < 40) {
+        console.log(`  ⚠ GEOM ${label}: edge ${e.id} drop ${drop}px < 40 (parent ${e.source} bottom ${pp.y + PERSON_H}, union ${e.target} top ${up.y}) — smoothstep will kink`);
+        bad++;
+      }
+    }
+    // child edge: union → person — must be bottom→top (line enters child from above)
+    if (sType === "union" && tType === "person") {
+      if (ss !== "bottom" || tt !== "top") {
+        console.log(`  ⚠ HANDLE ${label}: child edge ${e.id} expected bottom→top, got ${ss}→${tt}`);
+        bad++;
+      }
+    }
+  }
+  if (bad === 0) console.log(`  ✓ handles OK`);
+}
+
 // Scenario 1: Initial family (Dad+Mom+Me)
 {
   const nodes = [mkPerson("dad", "Dad"), mkPerson("mom", "Mom"), mkUnion("u1"), mkPerson("me", "Me")];
   const edges = [edge("e1", "dad", "u1"), edge("e2", "mom", "u1"), edge("e3", "u1", "me")];
   const laid = dump("1. Dad+Mom+Me", nodes, edges);
   checkNoOverlap("1", laid);
+  checkHandles("1", laid);
 }
 
 // Scenario 2: Add a sibling (two kids under Dad+Mom)
@@ -77,6 +116,7 @@ function checkNoOverlap(label: string, laid: any) {
   ];
   const laid = dump("2. Dad+Mom+Me+Sibling", nodes, edges);
   checkNoOverlap("2", laid);
+  checkHandles("2", laid);
 }
 
 // Scenario 3: Add grandparents above Dad
@@ -100,6 +140,7 @@ function checkNoOverlap(label: string, laid: any) {
   ];
   const laid = dump("3. Grandparents+Dad+Mom+Me", nodes, edges);
   checkNoOverlap("3", laid);
+  checkHandles("3", laid);
 }
 
 // Scenario 4: Full target-image shape (approximation):
@@ -164,6 +205,7 @@ function checkNoOverlap(label: string, laid: any) {
   ];
   const laid = dump("4. Full target-image tree", nodes, edges);
   checkNoOverlap("4", laid);
+  checkHandles("4", laid);
 }
 
 // Scenario 5: Single parent with child (user adds child to a person with no partner)
@@ -172,6 +214,7 @@ function checkNoOverlap(label: string, laid: any) {
   const edges = [edge("e1", "solo", "u1"), edge("e2", "u1", "kid")];
   const laid = dump("5. Single parent + child", nodes, edges);
   checkNoOverlap("5", laid);
+  checkHandles("5", laid);
 }
 
 // Scenario 6: Two disconnected people
@@ -180,6 +223,7 @@ function checkNoOverlap(label: string, laid: any) {
   const edges: E[] = [];
   const laid = dump("6. Two disconnected", nodes, edges);
   checkNoOverlap("6", laid);
+  checkHandles("6", laid);
 }
 
 // Scenario 7: Widow with 2 kids (one parent gone, kids still linked)
@@ -193,6 +237,7 @@ function checkNoOverlap(label: string, laid: any) {
   const edges = [edge("e1", "widow", "u1"), edge("e2", "u1", "k1"), edge("e3", "u1", "k2")];
   const laid = dump("7. Widow + 2 kids", nodes, edges);
   checkNoOverlap("7", laid);
+  checkHandles("7", laid);
 }
 
 // Scenario 8: Person re-married — two partner unions, one with kids
@@ -216,6 +261,7 @@ function checkNoOverlap(label: string, laid: any) {
   ];
   const laid = dump("8. Remarriage: P + Ex (k1) + NewPartner (k2)", nodes, edges);
   checkNoOverlap("8", laid);
+  checkHandles("8", laid);
 }
 
 // Scenario 10: Both Dad and Mom have a set of parents (the buggy case)
@@ -245,6 +291,7 @@ function checkNoOverlap(label: string, laid: any) {
   ];
   const laid = dump("10. Both Dad and Mom have parents", nodes, edges);
   checkNoOverlap("10", laid);
+  checkHandles("10", laid);
 
   const byId: Record<string, { x: number; y: number }> = {};
   for (const n of laid.nodes) byId[n.id] = n.position;
@@ -290,6 +337,7 @@ function checkNoOverlap(label: string, laid: any) {
   ];
   const laid = dump("11. Only Mom has parents", nodes, edges);
   checkNoOverlap("11", laid);
+  checkHandles("11", laid);
 }
 
 // Scenario 12: Both Dad and Mom have parents AND a sibling for Me
@@ -321,6 +369,7 @@ function checkNoOverlap(label: string, laid: any) {
   ];
   const laid = dump("12. Both have parents + sibling", nodes, edges);
   checkNoOverlap("12", laid);
+  checkHandles("12", laid);
   const byId: Record<string, { x: number; y: number }> = {};
   for (const n of laid.nodes) byId[n.id] = n.position;
   const u1Center = byId.u1.x + UNION_W / 2;
@@ -359,6 +408,7 @@ function checkNoOverlap(label: string, laid: any) {
   ];
   const laid = dump("13. Asymmetric grandparent widths", nodes, edges);
   checkNoOverlap("13", laid);
+  checkHandles("13", laid);
 }
 
 // Scenario 9: Delete-simulated — middle child of GP removed (no longer in edges)
@@ -373,4 +423,5 @@ function checkNoOverlap(label: string, laid: any) {
   const edges = [edge("e1", "gp", "u0"), edge("e2", "gm", "u0"), edge("e3", "u0", "c1"), edge("e4", "u0", "c3")];
   const laid = dump("9. After deletion of middle child", nodes, edges);
   checkNoOverlap("9", laid);
+  checkHandles("9", laid);
 }

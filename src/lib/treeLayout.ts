@@ -9,6 +9,7 @@ const H_GAP = 32;
 const PARTNER_GAP = 24;
 const V_GAP = 110;
 const ROOT_GAP = 80;
+const UNION_DROP = 40;
 
 type GraphMaps = {
   isPerson: (id: string) => boolean;
@@ -113,7 +114,7 @@ function layoutSubtree(
   if (soloBlock) {
     const anchorCenter = PERSON_W / 2;
     const unionLeft = anchorCenter - UNION_W / 2;
-    positions.set(soloBlock.unionId, { x: unionLeft, y: PERSON_H + 12 });
+    positions.set(soloBlock.unionId, { x: unionLeft, y: PERSON_H + UNION_DROP });
     kinds.set(soloBlock.unionId, "union");
     unionCenters.push(anchorCenter);
   } else {
@@ -133,7 +134,7 @@ function layoutSubtree(
         }
       }
 
-      positions.set(b.unionId, { x: unionLeft, y: (PERSON_H - UNION_H) / 2 });
+      positions.set(b.unionId, { x: unionLeft, y: PERSON_H + UNION_DROP });
       kinds.set(b.unionId, "union");
       unionCenters.push(unionLeft + UNION_W / 2);
       cursorRight = unionLeft + UNION_W;
@@ -248,7 +249,7 @@ export function computeAutoLayout(
     const aCenter = ap.x + PERSON_W / 2;
     const bCenter = bp.x + PERSON_W / 2;
     const uCenter = (aCenter + bCenter) / 2;
-    const uY = ap.y + (PERSON_H - UNION_H) / 2;
+    const uY = ap.y + PERSON_H + UNION_DROP;
     finalPositions.set(uId, { x: uCenter - UNION_W / 2, y: uY });
     kinds.set(uId, "union");
     claimed.add(uId);
@@ -313,57 +314,8 @@ export function applyAutoLayout(
     return p ? { ...n, position: p } : n;
   });
 
-  const partnerEdgesByPerson = new Map<string, Edge[]>();
-  for (const e of edges) {
-    if (isPerson(e.source) && isUnion(e.target)) {
-      const arr = partnerEdgesByPerson.get(e.source) ?? [];
-      arr.push(e);
-      partnerEdgesByPerson.set(e.source, arr);
-    }
-  }
-
-  const sideConnectedEdgeIds = new Set<string>();
-  for (const [pid, pedges] of partnerEdgesByPerson) {
-    const pp = positions.get(pid);
-    if (!pp) continue;
-    const pCenter = pp.x + PERSON_W / 2;
-    let nearestEdge: Edge | null = null;
-    let nearestDist = Infinity;
-    for (const e of pedges) {
-      const up = positions.get(e.target);
-      if (!up) continue;
-      const uCenter = up.x + UNION_W / 2;
-      const sameRow = Math.abs(pp.y - up.y) < 30;
-      if (!sameRow) continue;
-      const d = Math.abs(uCenter - pCenter);
-      if (d < nearestDist) {
-        nearestDist = d;
-        nearestEdge = e;
-      }
-    }
-    if (nearestEdge) sideConnectedEdgeIds.add(nearestEdge.id);
-  }
-
   const newEdges = edges.map((e) => {
     if (isPerson(e.source) && isUnion(e.target)) {
-      const pp = positions.get(e.source);
-      const up = positions.get(e.target);
-      if (!pp || !up) return e;
-      const pCenter = pp.x + PERSON_W / 2;
-      const uCenter = up.x + UNION_W / 2;
-      const personAbove = pp.y + PERSON_H <= up.y;
-      if (Math.abs(pCenter - uCenter) < 4 && personAbove) {
-        return { ...e, sourceHandle: "bottom", targetHandle: "top", type: "smoothstep" };
-      }
-      if (sideConnectedEdgeIds.has(e.id)) {
-        const personOnLeft = pCenter < uCenter;
-        return {
-          ...e,
-          sourceHandle: personOnLeft ? "right" : "left",
-          targetHandle: personOnLeft ? "left" : "right",
-          type: "straight",
-        };
-      }
       return { ...e, sourceHandle: "bottom", targetHandle: "top", type: "smoothstep" };
     }
     if (isUnion(e.source) && isPerson(e.target)) {
