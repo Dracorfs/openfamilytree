@@ -1,3 +1,4 @@
 - Use this image for reference of what the flow between nodes should be: ./family-tree-image-example.webp
 - It's important to prioritize the simmetry.
 - Always run tests to prove each implementation on the node connections.
+- Use /caveman plugin whenever it's needed to write code.

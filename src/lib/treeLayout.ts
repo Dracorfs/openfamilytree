@@ -18,6 +18,7 @@ type GraphMaps = {
   unionMembers: Map<string, string[]>;
   unionChildren: Map<string, string[]>;
   parentUnionOf: Map<string, string>;
+  personIndex: Map<string, number>;
 };
 
 function buildMaps(nodes: Node[], edges: Edge[]): GraphMaps {
@@ -29,6 +30,10 @@ function buildMaps(nodes: Node[], edges: Edge[]): GraphMaps {
   const unionMembers = new Map<string, string[]>();
   const unionChildren = new Map<string, string[]>();
   const parentUnionOf = new Map<string, string>();
+  const personIndex = new Map<string, number>();
+  nodes.forEach((n, i) => {
+    if (n.type === "person") personIndex.set(n.id, i);
+  });
 
   const push = <K, V>(m: Map<K, V[]>, k: K, v: V) => {
     const arr = m.get(k);
@@ -46,7 +51,7 @@ function buildMaps(nodes: Node[], edges: Edge[]): GraphMaps {
     }
   }
 
-  return { isPerson, isUnion, partnerUnionsOf, unionMembers, unionChildren, parentUnionOf };
+  return { isPerson, isUnion, partnerUnionsOf, unionMembers, unionChildren, parentUnionOf, personIndex };
 }
 
 type Positions = Map<string, { x: number; y: number }>;
@@ -111,12 +116,35 @@ function layoutSubtree(
   const soloBlock =
     blocks.length === 1 && blocks[0].partnerId === null ? blocks[0] : null;
 
+  // Preserve original horizontal order: when the anchor has a single partner
+  // and that partner appears BEFORE the anchor in the node list, put the
+  // partner on the left. Avoids an unnecessary swap when parents get added to
+  // the right-side partner of a couple.
+  const singlePartnerBlock =
+    blocks.length === 1 && blocks[0].partnerId != null ? blocks[0] : null;
+  const partnerOnLeft =
+    singlePartnerBlock != null &&
+    (g.personIndex.get(singlePartnerBlock.partnerId!) ?? Infinity) <
+      (g.personIndex.get(anchorId) ?? -Infinity);
+
   if (soloBlock) {
     const anchorCenter = PERSON_W / 2;
     const unionLeft = anchorCenter - UNION_W / 2;
     positions.set(soloBlock.unionId, { x: unionLeft, y: PERSON_H + UNION_DROP });
     kinds.set(soloBlock.unionId, "union");
     unionCenters.push(anchorCenter);
+  } else if (partnerOnLeft && singlePartnerBlock) {
+    const b = singlePartnerBlock;
+    const partnerLeft = 0;
+    positions.set(b.partnerId!, { x: partnerLeft, y: 0 });
+    kinds.set(b.partnerId!, "person");
+    const unionLeft = PERSON_W + PARTNER_GAP;
+    positions.set(b.unionId, { x: unionLeft, y: PERSON_H + UNION_DROP });
+    kinds.set(b.unionId, "union");
+    unionCenters.push(unionLeft + UNION_W / 2);
+    const anchorLeft = unionLeft + UNION_W + PARTNER_GAP;
+    positions.set(anchorId, { x: anchorLeft, y: 0 });
+    cursorRight = anchorLeft + PERSON_W;
   } else {
     blocks.forEach((b, i) => {
       let unionLeft = cursorRight + PARTNER_GAP;
@@ -214,12 +242,49 @@ export function computeAutoLayout(
     return !partnerHasParents;
   });
 
+  // Collect every person downstream of a root: their partners (when those
+  // partners don't come from another tree), their children, and recursively
+  // all descendants — including descendants reached by crossing a deferred
+  // partner union, since that child lineage still flows from THIS root. Lets
+  // us order root trees by the original index of their deepest descendant,
+  // so the tree containing the earliest-added ego-side ancestor goes left.
+  const collectTreePersons = (rootId: string): Set<string> => {
+    const out = new Set<string>();
+    const stack = [rootId];
+    while (stack.length) {
+      const pid = stack.pop()!;
+      if (out.has(pid)) continue;
+      if (!g.isPerson(pid)) continue;
+      out.add(pid);
+      for (const u of g.partnerUnionsOf.get(pid) ?? []) {
+        const others = (g.unionMembers.get(u) ?? []).filter((m) => m !== pid);
+        const partner = others[0];
+        if (partner && !g.parentUnionOf.has(partner)) stack.push(partner);
+        for (const c of g.unionChildren.get(u) ?? []) stack.push(c);
+      }
+    }
+    return out;
+  };
+
+  const treeKey = new Map<string, number>();
+  for (const p of trueRoots) {
+    let min = Infinity;
+    for (const id of collectTreePersons(p.id)) {
+      const idx = g.personIndex.get(id);
+      if (idx != null && idx < min) min = idx;
+    }
+    treeKey.set(p.id, min);
+  }
+  trueRoots.sort((a, b) => (treeKey.get(a.id)! - treeKey.get(b.id)!));
+
   const finalPositions = new Map<string, { x: number; y: number }>();
   let rootCursor = 0;
-  const placeTree = (subtree: SubtreeResult, isFirst: boolean) => {
+  const treeByNode = new Map<string, string>();
+  const placeTree = (subtree: SubtreeResult, isFirst: boolean, rootId: string) => {
     if (!isFirst) rootCursor += ROOT_GAP;
     for (const [id, pos] of subtree.positions) {
       finalPositions.set(id, { x: pos.x + rootCursor, y: pos.y });
+      treeByNode.set(id, rootId);
     }
     rootCursor += subtree.width;
   };
@@ -228,13 +293,25 @@ export function computeAutoLayout(
   for (const p of trueRoots) {
     if (claimed.has(p.id)) continue;
     const subtree = layoutSubtree(p.id, g, claimed, kinds, deferred);
-    placeTree(subtree, !placedAny);
+    placeTree(subtree, !placedAny, p.id);
     placedAny = true;
   }
 
+  // Shift every node owned by `treeId` down by `delta` pixels.
+  const shiftTree = (treeId: string, delta: number) => {
+    if (delta === 0) return;
+    for (const [id, tree] of treeByNode) {
+      if (tree !== treeId) continue;
+      const pos = finalPositions.get(id);
+      if (pos) finalPositions.set(id, { x: pos.x, y: pos.y + delta });
+    }
+  };
+
   // Process deferred unions (couple unions whose two partners each belong to
   // separate root trees). Place each union at the midpoint of its partners and
-  // lay out its children subtree centered below.
+  // lay out its children subtree centered below. Before placing, vertically
+  // align the two partners by shifting the shallower tree down so both sit on
+  // the same generational row.
   const pending = [...deferred.keys()];
   deferred.clear();
   while (pending.length > 0) {
@@ -243,9 +320,20 @@ export function computeAutoLayout(
     if (members.length < 2) continue;
     const a = members[0];
     const b = members[1];
-    const ap = finalPositions.get(a);
-    const bp = finalPositions.get(b);
+    let ap = finalPositions.get(a);
+    let bp = finalPositions.get(b);
     if (!ap || !bp) continue;
+
+    if (ap.y !== bp.y) {
+      const shallowId = ap.y < bp.y ? a : b;
+      const shallowTree = treeByNode.get(shallowId);
+      if (shallowTree != null) {
+        shiftTree(shallowTree, Math.abs(ap.y - bp.y));
+        ap = finalPositions.get(a)!;
+        bp = finalPositions.get(b)!;
+      }
+    }
+
     const aCenter = ap.x + PERSON_W / 2;
     const bCenter = bp.x + PERSON_W / 2;
     const uCenter = (aCenter + bCenter) / 2;
@@ -253,6 +341,10 @@ export function computeAutoLayout(
     finalPositions.set(uId, { x: uCenter - UNION_W / 2, y: uY });
     kinds.set(uId, "union");
     claimed.add(uId);
+    // Union and its descendants join the anchor-a's tree so later alignment
+    // passes can shift them together.
+    const mergedTree = treeByNode.get(a) ?? a;
+    treeByNode.set(uId, mergedTree);
 
     const kidIds = (g.unionChildren.get(uId) ?? []).filter((k) => !claimed.has(k));
     if (kidIds.length === 0) continue;
@@ -280,6 +372,7 @@ export function computeAutoLayout(
       const left = lefts[k] + shift;
       for (const [nid, pos] of st.positions) {
         finalPositions.set(nid, { x: pos.x + left, y: pos.y + childY });
+        treeByNode.set(nid, mergedTree);
       }
     });
   }

@@ -319,6 +319,167 @@ function checkHandles(label: string, laid: any) {
   if (asym > 4) console.log(`  ⚠ Asymmetric grandparent placement (diff ${asym})`);
 }
 
+// Scenario 10b: Both have parents, but Mom's grandparents were ADDED FIRST
+// (so they come before Dad's in the nodes array). Dad must still stay on
+// the LEFT because Dad was created before Mom in the original tree.
+{
+  const nodes = [
+    mkPerson("dad", "Dad"),
+    mkPerson("mom", "Mom"),
+    mkUnion("u1"),
+    mkPerson("me", "Me"),
+    // Mom's parents added first
+    mkPerson("gpB", "GpB"),
+    mkPerson("gmB", "GmB"),
+    mkUnion("uB"),
+    // Dad's parents added after
+    mkPerson("gpA", "GpA"),
+    mkPerson("gmA", "GmA"),
+    mkUnion("uA"),
+  ];
+  const edges = [
+    edge("e1", "dad", "u1"),
+    edge("e2", "mom", "u1"),
+    edge("e3", "u1", "me"),
+    edge("eB1", "gpB", "uB"),
+    edge("eB2", "gmB", "uB"),
+    edge("eB3", "uB", "mom"),
+    edge("eA1", "gpA", "uA"),
+    edge("eA2", "gmA", "uA"),
+    edge("eA3", "uA", "dad"),
+  ];
+  const laid = dump("10b. Both have parents (Mom's added first)", nodes, edges);
+  checkNoOverlap("10b", laid);
+  checkHandles("10b", laid);
+  const pos: Record<string, { x: number; y: number }> = {};
+  for (const n of laid.nodes) pos[n.id] = n.position;
+  if (pos.dad.x >= pos.mom.x) {
+    console.log(`  ⚠ ORDER 10b: Dad (${pos.dad.x}) should be left of Mom (${pos.mom.x})`);
+  } else {
+    console.log(`  ✓ Dad stays left (Dad x=${pos.dad.x} < Mom x=${pos.mom.x})`);
+  }
+  if (pos.gpA.x >= pos.gpB.x) {
+    console.log(`  ⚠ ORDER 10b: GpA (${pos.gpA.x}) should be left of GpB (${pos.gpB.x})`);
+  } else {
+    console.log(`  ✓ GpA tree stays left (GpA x=${pos.gpA.x} < GpB x=${pos.gpB.x})`);
+  }
+}
+
+// Scenario 10c: Keep adding grandparents across generations. Dad must stay
+// on the left at EVERY step. Simulates the actual UI flow where Dad/Mom are
+// created first, then parents-of-Mom, then parents-of-Dad, then more layers.
+{
+  let pIdx = 0;
+  const nextP = (id: string, name: string) => {
+    pIdx++;
+    return mkPerson(id, name);
+  };
+  const step = (label: string, nodes: N[], edges: E[]) => {
+    const laid = dump(label, nodes, edges);
+    checkNoOverlap(label, laid);
+    checkHandles(label, laid);
+    const pos: Record<string, { x: number; y: number }> = {};
+    for (const n of laid.nodes) pos[n.id] = n.position;
+    if (pos.dad && pos.mom && pos.dad.x >= pos.mom.x) {
+      console.log(`  ⚠ ORDER ${label}: Dad (${pos.dad.x}) should stay left of Mom (${pos.mom.x})`);
+    } else if (pos.dad && pos.mom) {
+      console.log(`  ✓ Dad left of Mom (${pos.dad.x} < ${pos.mom.x})`);
+    }
+    return pos;
+  };
+
+  const nodes: N[] = [
+    nextP("dad", "Dad"),
+    nextP("mom", "Mom"),
+    mkUnion("u1"),
+    nextP("me", "Me"),
+  ];
+  const edges: E[] = [
+    edge("e1", "dad", "u1"),
+    edge("e2", "mom", "u1"),
+    edge("e3", "u1", "me"),
+  ];
+  step("10c.0 initial", [...nodes], [...edges]);
+
+  // add parents to Mom
+  nodes.push(nextP("gpB", "GpB"), nextP("gmB", "GmB"), mkUnion("uB"));
+  edges.push(edge("eB1", "gpB", "uB"), edge("eB2", "gmB", "uB"), edge("eB3", "uB", "mom"));
+  step("10c.1 +Mom's parents", [...nodes], [...edges]);
+
+  // add parents to Dad
+  nodes.push(nextP("gpA", "GpA"), nextP("gmA", "GmA"), mkUnion("uA"));
+  edges.push(edge("eA1", "gpA", "uA"), edge("eA2", "gmA", "uA"), edge("eA3", "uA", "dad"));
+  step("10c.2 +Dad's parents", [...nodes], [...edges]);
+
+  // add parents to GpB (great-grandparents on Mom's side)
+  nodes.push(nextP("ggpB", "GgpB"), nextP("ggmB", "GgmB"), mkUnion("uGgb"));
+  edges.push(edge("eGgb1", "ggpB", "uGgb"), edge("eGgb2", "ggmB", "uGgb"), edge("eGgb3", "uGgb", "gpB"));
+  step("10c.3 +GpB's parents", [...nodes], [...edges]);
+
+  // add parents to GpA (great-grandparents on Dad's side)
+  nodes.push(nextP("ggpA", "GgpA"), nextP("ggmA", "GgmA"), mkUnion("uGga"));
+  edges.push(edge("eGga1", "ggpA", "uGga"), edge("eGga2", "ggmA", "uGga"), edge("eGga3", "uGga", "gpA"));
+  step("10c.4 +GpA's parents", [...nodes], [...edges]);
+}
+
+// Scenario 10d: Dad has parents AND grandparents on both sides of his parents;
+// Mom has only parents (one generation up). Dad's chain is deeper. Both
+// partners must still end up on the same row. Was dropping Mom below.
+{
+  const nodes = [
+    mkPerson("dad", "Dad"),
+    mkPerson("mom", "Mom"),
+    mkUnion("u1"),
+    mkPerson("me", "Me"),
+    mkPerson("gpA", "GpA"),
+    mkPerson("gmA", "GmA"),
+    mkUnion("uA"),
+    mkPerson("gpB", "GpB"),
+    mkPerson("gmB", "GmB"),
+    mkUnion("uB"),
+    // gpA's parents
+    mkPerson("ggpAa", "GgpAa"),
+    mkPerson("ggmAa", "GgmAa"),
+    mkUnion("uGga"),
+    // gmA's parents
+    mkPerson("ggpAb", "GgpAb"),
+    mkPerson("ggmAb", "GgmAb"),
+    mkUnion("uGgb"),
+  ];
+  const edges = [
+    edge("e1", "dad", "u1"),
+    edge("e2", "mom", "u1"),
+    edge("e3", "u1", "me"),
+    edge("eA1", "gpA", "uA"),
+    edge("eA2", "gmA", "uA"),
+    edge("eA3", "uA", "dad"),
+    edge("eB1", "gpB", "uB"),
+    edge("eB2", "gmB", "uB"),
+    edge("eB3", "uB", "mom"),
+    edge("eGa1", "ggpAa", "uGga"),
+    edge("eGa2", "ggmAa", "uGga"),
+    edge("eGa3", "uGga", "gpA"),
+    edge("eGb1", "ggpAb", "uGgb"),
+    edge("eGb2", "ggmAb", "uGgb"),
+    edge("eGb3", "uGgb", "gmA"),
+  ];
+  const laid = dump("10d. Dad has grandparents (both sides), Mom has parents only", nodes, edges);
+  checkNoOverlap("10d", laid);
+  checkHandles("10d", laid);
+  const pos: Record<string, { x: number; y: number }> = {};
+  for (const n of laid.nodes) pos[n.id] = n.position;
+  if (pos.dad.y !== pos.mom.y) {
+    console.log(`  ⚠ GEN 10d: Dad y=${pos.dad.y} must equal Mom y=${pos.mom.y}`);
+  } else {
+    console.log(`  ✓ Dad and Mom on same row (y=${pos.dad.y})`);
+  }
+  if (pos.dad.x >= pos.mom.x) {
+    console.log(`  ⚠ ORDER 10d: Dad (${pos.dad.x}) should stay left of Mom (${pos.mom.x})`);
+  } else {
+    console.log(`  ✓ Dad left of Mom (${pos.dad.x} < ${pos.mom.x})`);
+  }
+}
+
 // Scenario 11: Only Mom has parents (Dad floating, no grandparents on his side)
 {
   const nodes = [
@@ -341,6 +502,14 @@ function checkHandles(label: string, laid: any) {
   const laid = dump("11. Only Mom has parents", nodes, edges);
   checkNoOverlap("11", laid);
   checkHandles("11", laid);
+  // Dad declared BEFORE Mom in the nodes array → Dad must stay on the LEFT.
+  const pos: Record<string, { x: number; y: number }> = {};
+  for (const n of laid.nodes) pos[n.id] = n.position;
+  if (pos.dad.x >= pos.mom.x) {
+    console.log(`  ⚠ ORDER 11: Dad (${pos.dad.x}) should be left of Mom (${pos.mom.x})`);
+  } else {
+    console.log(`  ✓ original order preserved (Dad x=${pos.dad.x} < Mom x=${pos.mom.x})`);
+  }
 }
 
 // Scenario 12: Both Dad and Mom have parents AND a sibling for Me
