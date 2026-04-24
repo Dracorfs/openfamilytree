@@ -50,7 +50,6 @@ deno.lock
 pnpm-lock.yaml
 yarn.lock
 package-lock.json
-bun.lock
 deno.json
 
 # Vercel
