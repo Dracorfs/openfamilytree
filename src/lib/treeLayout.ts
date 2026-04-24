@@ -9,7 +9,7 @@ const H_GAP = 32;
 const PARTNER_GAP = 24;
 const V_GAP = 110;
 const ROOT_GAP = 80;
-const UNION_DROP = 40;
+const UNION_DROP = 20;
 
 type GraphMaps = {
   isPerson: (id: string) => boolean;
@@ -316,7 +316,7 @@ export function applyAutoLayout(
 
   const newEdges = edges.map((e) => {
     if (isPerson(e.source) && isUnion(e.target)) {
-      return { ...e, sourceHandle: "bottom", targetHandle: "top", type: "smoothstep" };
+      return { ...e, sourceHandle: "bottom", targetHandle: "top", type: "partner" };
     }
     if (isUnion(e.source) && isPerson(e.target)) {
       return { ...e, sourceHandle: "bottom", targetHandle: "top", type: "smoothstep" };

@@ -63,19 +63,22 @@ function checkHandles(label: string, laid: any) {
     const tt = (e as any).targetHandle;
     const sType = typeById.get(e.source);
     const tType = typeById.get(e.target);
-    // partner edge: person → union — must be bottom→top (line leaves parent underside)
+    // partner edge: person → union — must be bottom→top, L-shape (custom
+     // "partner" edge type), and union must be clearly below parent.
     if (sType === "person" && tType === "union") {
       if (ss !== "bottom" || tt !== "top") {
         console.log(`  ⚠ HANDLE ${label}: partner edge ${e.id} expected bottom→top, got ${ss}→${tt}`);
         bad++;
       }
-      // parent must be above union with enough drop for smoothstep to route
-      // cleanly (React Flow default offset is 20px per end → need ≥40px gap)
+      if ((e as any).type !== "partner") {
+        console.log(`  ⚠ TYPE ${label}: partner edge ${e.id} expected type "partner", got ${(e as any).type}`);
+        bad++;
+      }
       const pp = posById.get(e.source)!;
       const up = posById.get(e.target)!;
       const drop = up.y - (pp.y + PERSON_H);
-      if (drop < 40) {
-        console.log(`  ⚠ GEOM ${label}: edge ${e.id} drop ${drop}px < 40 (parent ${e.source} bottom ${pp.y + PERSON_H}, union ${e.target} top ${up.y}) — smoothstep will kink`);
+      if (drop <= 0) {
+        console.log(`  ⚠ GEOM ${label}: edge ${e.id} union not below parent (drop ${drop}px)`);
         bad++;
       }
     }

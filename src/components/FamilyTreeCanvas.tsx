@@ -9,8 +9,9 @@ import {
   Position,
   Handle,
   BackgroundVariant,
+  BaseEdge,
 } from "@xyflow/react";
-import type { Node, Edge, NodeMouseHandler } from "@xyflow/react";
+import type { Node, Edge, NodeMouseHandler, EdgeProps } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useTheme } from "./ThemeProvider";
 import { applyAutoLayout } from "../lib/treeLayout";
@@ -50,8 +51,8 @@ const partnerEdgeStyle = { strokeWidth: 2, stroke: "#8D8376" };
 const childEdgeStyle = { strokeWidth: 2, stroke: "#8D8376" };
 
 const rawInitialEdges: Edge[] = [
-  { id: "e-dad-union", source: "dad", target: "union-1", type: "straight", style: partnerEdgeStyle },
-  { id: "e-mom-union", source: "mom", target: "union-1", type: "straight", style: partnerEdgeStyle },
+  { id: "e-dad-union", source: "dad", target: "union-1", type: "partner", style: partnerEdgeStyle },
+  { id: "e-mom-union", source: "mom", target: "union-1", type: "partner", style: partnerEdgeStyle },
   { id: "e-union-me", source: "union-1", target: "me", type: "smoothstep", style: childEdgeStyle },
 ];
 
@@ -71,7 +72,7 @@ function makePartnerEdge(personId: string, unionId: string): Edge {
     id: nextId("e"),
     source: personId,
     target: unionId,
-    type: "straight",
+    type: "partner",
     style: partnerEdgeStyle,
   };
 }
@@ -128,9 +129,21 @@ function UnionNode() {
   );
 }
 
+// L-shaped partner edge: vertical drop from parent bottom to the dot's Y,
+// then horizontal to the dot. Keeps the crossbar flush with the union dot
+// (standard smoothstep puts the bar at the midpoint, leaving a visible drop).
+function PartnerEdge({ sourceX, sourceY, targetX, targetY, style }: EdgeProps) {
+  const path = `M ${sourceX},${sourceY} L ${sourceX},${targetY} L ${targetX},${targetY}`;
+  return <BaseEdge path={path} style={style} />;
+}
+
 const nodeTypes = {
   person: PersonNode,
   union: UnionNode,
+};
+
+const edgeTypes = {
+  partner: PartnerEdge,
 };
 
 /* ------------------------------------------------------------------ */
@@ -477,6 +490,7 @@ export function FamilyTreeCanvas() {
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         nodesDraggable={false}
         nodesConnectable={false}
         fitView
