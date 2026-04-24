@@ -497,6 +497,7 @@ export function FamilyTreeCanvas() {
         minZoom={0.2}
         defaultEdgeOptions={{ zIndex: 0 }}
         colorMode={theme}
+        proOptions={{ hideAttribution: true }}
       >
         <Background
           variant={BackgroundVariant.Dots}
