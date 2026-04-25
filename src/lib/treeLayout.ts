@@ -66,12 +66,15 @@ type NodeKind = "person" | "union";
 
 type DeferredUnion = { unionId: string };
 
+type PartnerSide = "left" | "right" | "auto";
+
 function layoutSubtree(
   anchorId: string,
   g: GraphMaps,
   claimed: Set<string>,
   kinds: Map<string, NodeKind>,
   deferred: Map<string, DeferredUnion>,
+  partnerSide: PartnerSide = "auto",
 ): SubtreeResult {
   claimed.add(anchorId);
   const positions: Positions = new Map();
@@ -97,7 +100,18 @@ function layoutSubtree(
     const partner = allOthers.find((p) => !claimed.has(p)) ?? null;
     if (partner) claimed.add(partner);
     const kids = (g.unionChildren.get(u) ?? []).filter((c) => !claimed.has(c));
-    const kidSubtrees = kids.map((k) => layoutSubtree(k, g, claimed, kinds, deferred));
+    // Hint each child which side its partner should sit on, so an in-law never
+    // lands between two blood siblings. First-born keeps its partner to the
+    // left, last-born to the right; middle children fall back to insertion
+    // order. One-child subtrees have no in-law to avoid, so leave as "auto".
+    const kidSubtrees = kids.map((k, idx) => {
+      let side: PartnerSide = "auto";
+      if (kids.length > 1) {
+        if (idx === 0) side = "left";
+        else if (idx === kids.length - 1) side = "right";
+      }
+      return layoutSubtree(k, g, claimed, kinds, deferred, side);
+    });
 
     let cw = 0;
     kidSubtrees.forEach((s, i) => {
@@ -116,16 +130,22 @@ function layoutSubtree(
   const soloBlock =
     blocks.length === 1 && blocks[0].partnerId === null ? blocks[0] : null;
 
-  // Preserve original horizontal order: when the anchor has a single partner
-  // and that partner appears BEFORE the anchor in the node list, put the
-  // partner on the left. Avoids an unnecessary swap when parents get added to
-  // the right-side partner of a couple.
+  // Decide which side the partner sits on. Caller-supplied hint wins (lets a
+  // parent push in-laws to the outside of a sibling row). Without a hint, keep
+  // the original horizontal order: partner added before the anchor in the node
+  // list stays on the left, so adding parents to the right-hand partner of a
+  // couple doesn't cause a swap.
   const singlePartnerBlock =
     blocks.length === 1 && blocks[0].partnerId != null ? blocks[0] : null;
-  const partnerOnLeft =
-    singlePartnerBlock != null &&
-    (g.personIndex.get(singlePartnerBlock.partnerId!) ?? Infinity) <
-      (g.personIndex.get(anchorId) ?? -Infinity);
+  let partnerOnLeft = false;
+  if (singlePartnerBlock != null) {
+    if (partnerSide === "left") partnerOnLeft = true;
+    else if (partnerSide === "right") partnerOnLeft = false;
+    else
+      partnerOnLeft =
+        (g.personIndex.get(singlePartnerBlock.partnerId!) ?? Infinity) <
+        (g.personIndex.get(anchorId) ?? -Infinity);
+  }
 
   if (soloBlock) {
     const anchorCenter = PERSON_W / 2;
@@ -266,16 +286,106 @@ export function computeAutoLayout(
     return out;
   };
 
+  // Two partner-free roots (spouses at the top of a tree) both qualify as
+  // trueRoots — dedupe so each tree has exactly one canonical root. Keeps
+  // the cross-tree ordering constraints below from slipping past a duplicate.
+  const seenInTree = new Set<string>();
+  const dedupedRoots: Node[] = [];
+  for (const r of trueRoots) {
+    if (seenInTree.has(r.id)) continue;
+    dedupedRoots.push(r);
+    for (const id of collectTreePersons(r.id)) seenInTree.add(id);
+  }
+  trueRoots.length = 0;
+  trueRoots.push(...dedupedRoots);
+
   const treeKey = new Map<string, number>();
+  const personToRoot = new Map<string, string>();
   for (const p of trueRoots) {
     let min = Infinity;
     for (const id of collectTreePersons(p.id)) {
+      personToRoot.set(id, p.id);
       const idx = g.personIndex.get(id);
       if (idx != null && idx < min) min = idx;
     }
     treeKey.set(p.id, min);
   }
-  trueRoots.sort((a, b) => (treeKey.get(a.id)! - treeKey.get(b.id)!));
+
+  // Cross-tree couple constraint: when a person with siblings marries someone
+  // who also has ancestors (so their union gets deferred and the partner lives
+  // in a separate root tree), keep the same outer-side placement we use for
+  // in-tree partners. First-born's partner-tree sorts LEFT of the first-born's
+  // tree; last-born's partner-tree sorts RIGHT. Without this, partner-tree
+  // ordering falls back to personIndex and can flip the partner to the wrong
+  // side of the couple once parents are added to them.
+  const rootBefore = new Map<string, Set<string>>();
+  const addRootBefore = (a: string, b: string) => {
+    if (a === b) return;
+    let s = rootBefore.get(a);
+    if (!s) {
+      s = new Set();
+      rootBefore.set(a, s);
+    }
+    s.add(b);
+  };
+  for (const person of persons) {
+    const parentU = g.parentUnionOf.get(person.id);
+    if (!parentU) continue;
+    const siblings = g.unionChildren.get(parentU) ?? [];
+    if (siblings.length < 2) continue;
+    const idx = siblings.indexOf(person.id);
+    let hint: PartnerSide = "auto";
+    if (idx === 0) hint = "left";
+    else if (idx === siblings.length - 1) hint = "right";
+    if (hint === "auto") continue;
+    for (const u of g.partnerUnionsOf.get(person.id) ?? []) {
+      const others = (g.unionMembers.get(u) ?? []).filter((m) => m !== person.id);
+      const partner = others[0];
+      if (!partner || !g.parentUnionOf.has(partner)) continue;
+      const myTree = personToRoot.get(person.id);
+      const partnerTree = personToRoot.get(partner);
+      if (!myTree || !partnerTree || myTree === partnerTree) continue;
+      if (hint === "left") addRootBefore(partnerTree, myTree);
+      else addRootBefore(myTree, partnerTree);
+    }
+  }
+
+  // Kahn's algorithm ordered by treeKey for ties. Falls back to pure treeKey
+  // sort if constraints form a cycle (shouldn't happen, but don't hang layout).
+  const keyCmp = (a: string, b: string) =>
+    (treeKey.get(a) ?? 0) - (treeKey.get(b) ?? 0);
+  const indeg = new Map<string, number>();
+  for (const r of trueRoots) indeg.set(r.id, 0);
+  for (const [, targets] of rootBefore) {
+    for (const t of targets) {
+      if (!indeg.has(t)) continue;
+      indeg.set(t, (indeg.get(t) ?? 0) + 1);
+    }
+  }
+  const ready: string[] = [];
+  for (const [id, d] of indeg) if (d === 0) ready.push(id);
+  ready.sort(keyCmp);
+  const topo: string[] = [];
+  while (ready.length) {
+    const next = ready.shift()!;
+    topo.push(next);
+    for (const nb of rootBefore.get(next) ?? []) {
+      if (!indeg.has(nb)) continue;
+      const d = (indeg.get(nb) ?? 0) - 1;
+      indeg.set(nb, d);
+      if (d === 0) {
+        let i = 0;
+        while (i < ready.length && keyCmp(ready[i], nb) <= 0) i++;
+        ready.splice(i, 0, nb);
+      }
+    }
+  }
+  if (topo.length === trueRoots.length) {
+    const order = new Map(topo.map((id, i) => [id, i]));
+    trueRoots.sort((a, b) => order.get(a.id)! - order.get(b.id)!);
+  } else {
+    trueRoots.sort((a, b) => keyCmp(a.id, b.id));
+  }
 
   const finalPositions = new Map<string, { x: number; y: number }>();
   let rootCursor = 0;
