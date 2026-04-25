@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "react-day-picker/style.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -56,4 +57,54 @@ body {
 }
 .dark ::-webkit-scrollbar-thumb:hover {
   background: #64748b;
+}
+
+/* react-day-picker theming via CSS variables */
+.oft-daypicker {
+  --rdp-accent-color: var(--color-brand-link);
+  --rdp-accent-background-color: color-mix(in srgb, var(--color-brand-link) 12%, transparent);
+  --rdp-day-height: 2rem;
+  --rdp-day-width: 2rem;
+  --rdp-font-family: inherit;
+  font-size: 0.8125rem;
+  margin: 0;
+  padding: 0.5rem;
+}
+.oft-daypicker .rdp-month_caption {
+  font-weight: 600;
+}
+.oft-daypicker .rdp-dropdowns {
+  display: flex;
+  gap: 0.25rem;
+}
+.oft-daypicker .rdp-dropdown {
+  font: inherit;
+  background: transparent;
+  color: inherit;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.25rem;
+}
+.dark .oft-daypicker .rdp-dropdown {
+  border-color: #475569;
+  background: #1f2937;
+}
+.oft-daypicker .rdp-day_button {
+  border-radius: 0.25rem;
+}
+.oft-daypicker .rdp-today:not(.rdp-selected) .rdp-day_button {
+  font-weight: 700;
+  color: var(--color-brand-link);
+}
+.dark .oft-daypicker .rdp-today:not(.rdp-selected) .rdp-day_button {
+  color: #93c5fd;
+}
+.oft-daypicker .rdp-outside .rdp-day_button {
+  color: #94a3b8;
+}
+.dark .oft-daypicker .rdp-outside .rdp-day_button {
+  color: #475569;
+}
+.oft-daypicker .rdp-chevron {
+  fill: currentColor;
 }

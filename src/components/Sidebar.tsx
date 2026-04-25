@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { DatePickerField } from "./DatePickerField";
 
 export function Sidebar() {
   const [activeTab, setActiveTab] = useState("Personal");
@@ -330,13 +331,12 @@ export function Sidebar() {
                 <div className="mt-4 border-t border-slate-100 dark:border-gray-700 pt-4 space-y-4">
                   <div className="grid grid-cols-[100px_1fr] items-center gap-2">
                     <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">Born:</label>
-                    <input
-                      type="date"
-                      className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-brand-link dark:focus:ring-blue-400 bg-slate-50 dark:bg-gray-800 dark:text-gray-200 text-slate-600"
+                    <DatePickerField
                       value={birthDate}
-                      onChange={(e) => {
-                        setBirthDate(e.target.value);
-                        dispatchUpdate("birthYear", e.target.value);
+                      ariaLabel="Born date"
+                      onChange={(v) => {
+                        setBirthDate(v);
+                        dispatchUpdate("birthYear", v);
                       }}
                     />
                   </div>
@@ -358,13 +358,12 @@ export function Sidebar() {
                 <div className="mt-4 border-t border-slate-100 dark:border-gray-700 pt-4 space-y-4">
                   <div className="grid grid-cols-[100px_1fr] items-center gap-2">
                     <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">Died:</label>
-                    <input
-                      type="date"
-                      className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-brand-link dark:focus:ring-blue-400 bg-slate-50 dark:bg-gray-800 dark:text-gray-200 text-slate-600"
+                    <DatePickerField
                       value={deathDate}
-                      onChange={(e) => {
-                        setDeathDate(e.target.value);
-                        dispatchUpdate("deathDate", e.target.value);
+                      ariaLabel="Died date"
+                      onChange={(v) => {
+                        setDeathDate(v);
+                        dispatchUpdate("deathDate", v);
                       }}
                     />
                   </div>
