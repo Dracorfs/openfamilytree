@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ReactFlow,
   MiniMap,
@@ -14,6 +14,7 @@ import {
 import type { Node, Edge, NodeMouseHandler, EdgeProps } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useTheme } from "./ThemeProvider";
+import { useTranslation } from "./LanguageProvider";
 import { applyAutoLayout } from "../lib/treeLayout";
 
 /* ------------------------------------------------------------------ */
@@ -40,25 +41,23 @@ interface PersonData {
 /*  Initial data                                                       */
 /* ------------------------------------------------------------------ */
 
-const rawInitialNodes: Node[] = [
-  { id: "dad", type: "person", position: { x: 0, y: 0 }, data: { name: "Dad", gender: "m" } },
-  { id: "mom", type: "person", position: { x: 0, y: 0 }, data: { name: "Mom", gender: "f" } },
-  { id: "union-1", type: "union", position: { x: 0, y: 0 }, data: {} },
-  { id: "me", type: "person", position: { x: 0, y: 0 }, data: { name: "Me", gender: "o" } },
-];
-
 const partnerEdgeStyle = { strokeWidth: 2, stroke: "#8D8376" };
 const childEdgeStyle = { strokeWidth: 2, stroke: "#8D8376" };
 
-const rawInitialEdges: Edge[] = [
-  { id: "e-dad-union", source: "dad", target: "union-1", type: "partner", style: partnerEdgeStyle },
-  { id: "e-mom-union", source: "mom", target: "union-1", type: "partner", style: partnerEdgeStyle },
-  { id: "e-union-me", source: "union-1", target: "me", type: "smoothstep", style: childEdgeStyle },
-];
-
-const initial = applyAutoLayout(rawInitialNodes, rawInitialEdges);
-const initialNodes = initial.nodes;
-const initialEdges = initial.edges;
+function buildInitialGraph(names: { dad: string; mom: string; me: string }) {
+  const rawInitialNodes: Node[] = [
+    { id: "dad", type: "person", position: { x: 0, y: 0 }, data: { name: names.dad, gender: "m" } },
+    { id: "mom", type: "person", position: { x: 0, y: 0 }, data: { name: names.mom, gender: "f" } },
+    { id: "union-1", type: "union", position: { x: 0, y: 0 }, data: {} },
+    { id: "me", type: "person", position: { x: 0, y: 0 }, data: { name: names.me, gender: "o" } },
+  ];
+  const rawInitialEdges: Edge[] = [
+    { id: "e-dad-union", source: "dad", target: "union-1", type: "partner", style: partnerEdgeStyle },
+    { id: "e-mom-union", source: "mom", target: "union-1", type: "partner", style: partnerEdgeStyle },
+    { id: "e-union-me", source: "union-1", target: "me", type: "smoothstep", style: childEdgeStyle },
+  ];
+  return applyAutoLayout(rawInitialNodes, rawInitialEdges);
+}
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -231,8 +230,19 @@ function computeRelations(personId: string, nodes: Node[], edges: Edge[]): Relat
 
 export function FamilyTreeCanvas() {
   const { theme } = useTheme();
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const { t } = useTranslation();
+  const tRef = useRef(t);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
+  const initial = useMemo(
+    () => buildInitialGraph({ dad: t("canvas.dad"), mom: t("canvas.mom"), me: t("canvas.me") }),
+    // build initial graph once with first-render language; ignore later lang changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
   const selectedNodeIdRef = useRef<string | null>(null);
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
@@ -327,7 +337,7 @@ export function FamilyTreeCanvas() {
         id: newPersonId,
         type: "person",
         position: { x: 0, y: 0 },
-        data: { name: "New Person", gender: "o" } as PersonData,
+        data: { name: tRef.current("canvas.newPerson"), gender: "o" } as PersonData,
       };
 
       let workingNodes: Node[] = [...prevNodes];
@@ -374,12 +384,12 @@ export function FamilyTreeCanvas() {
         const momId = nextId("person");
         const unionId = nextId("union");
 
-        newPerson.data = { name: "Dad", gender: "m" } as PersonData;
+        newPerson.data = { name: tRef.current("canvas.dad"), gender: "m" } as PersonData;
         const momNode: Node = {
           id: momId,
           type: "person",
           position: { x: 0, y: 0 },
-          data: { name: "Mom", gender: "f" } as PersonData,
+          data: { name: tRef.current("canvas.mom"), gender: "f" } as PersonData,
         };
         const unionNode: Node = {
           id: unionId,
@@ -469,11 +479,11 @@ export function FamilyTreeCanvas() {
           body: JSON.stringify({ nodes, edges }),
         });
         const result = await response.json();
-        if (result.success) alert("Family tree saved successfully!");
-        else alert("Failed to save family tree: " + result.error);
+        if (result.success) alert(tRef.current("canvas.savedSuccess"));
+        else alert(tRef.current("canvas.saveFailed", { error: result.error }));
       } catch (err) {
         console.error(err);
-        alert("An error occurred while saving.");
+        alert(tRef.current("canvas.saveError"));
       }
     };
     document.addEventListener("save-family-tree", handleSave);

@@ -1,9 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { DatePickerField } from "./DatePickerField";
+import { useTranslation } from "./LanguageProvider";
+import { RELATION_KEY_TO_TRANSLATION, type TranslationKey } from "../i18n/translations";
+
+type TabId = "personal" | "relations" | "contact" | "biography";
+const TABS: { id: TabId; key: TranslationKey }[] = [
+  { id: "personal", key: "sidebar.tab.personal" },
+  { id: "relations", key: "sidebar.tab.relations" },
+  { id: "contact", key: "sidebar.tab.contact" },
+  { id: "biography", key: "sidebar.tab.biography" },
+];
 
 export function Sidebar() {
-  const [activeTab, setActiveTab] = useState("Personal");
-  const tabs = ["Personal", "Relations", "Contact", "Biography"];
+  const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState<TabId>("personal");
 
   type RelPerson = { id: string; name?: string; surname?: string; gender?: string };
   const [relations, setRelations] = useState<Record<string, RelPerson[]>>({});
@@ -107,8 +117,8 @@ export function Sidebar() {
     [selectedId],
   );
 
-  const displayName = personName || "Select a person";
-  const displayBirth = birthDate ? `b. ${birthDate}` : "";
+  const displayName = personName || t("sidebar.selectPerson");
+  const displayBirth = birthDate ? t("sidebar.bornShort", { date: birthDate }) : "";
 
   return (
     <aside className="w-[360px] h-full bg-white dark:bg-gray-900 border-r border-brand-border dark:border-gray-700 shadow-lg flex flex-col z-10 relative">
@@ -117,8 +127,8 @@ export function Sidebar() {
         {selectedId && (
           <button
             onClick={() => deletePerson(selectedId)}
-            aria-label="Delete person"
-            title="Delete person"
+            aria-label={t("sidebar.deletePerson")}
+            title={t("sidebar.deletePerson")}
             className="absolute top-2 right-2 p-1.5 rounded text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -167,19 +177,19 @@ export function Sidebar() {
               onClick={() => dispatchAdd("partner")}
               className="py-1.5 text-xs font-medium bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-300 dark:border-gray-600 rounded hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors"
             >
-              + Partner
+              {t("sidebar.addPartner")}
             </button>
             <button
               onClick={() => dispatchAdd("parent")}
               className="py-1.5 text-xs font-medium bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-300 dark:border-gray-600 rounded hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors"
             >
-              + Parents
+              {t("sidebar.addParents")}
             </button>
             <button
               onClick={() => dispatchAdd("child")}
               className="py-1.5 text-xs font-medium bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-300 dark:border-gray-600 rounded hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors"
             >
-              + Child
+              {t("sidebar.addChild")}
             </button>
           </div>
         )}
@@ -189,17 +199,17 @@ export function Sidebar() {
       {/* Tabs */}
       {selectedId && (
       <div className="flex border-b border-brand-border dark:border-gray-700 bg-slate-100/50 dark:bg-gray-800/50">
-        {tabs.map((tab) => (
+        {TABS.map((tab) => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
             className={`flex-1 py-2 text-xs font-medium text-center transition-colors ${
-              activeTab === tab
+              activeTab === tab.id
                 ? "bg-white dark:bg-gray-900 text-brand-link dark:text-blue-400 border-b-2 border-brand-link dark:border-blue-400"
                 : "text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200 border-b border-transparent"
             }`}
           >
-            {tab}
+            {t(tab.key)}
           </button>
         ))}
       </div>
@@ -210,16 +220,16 @@ export function Sidebar() {
         {!selectedId ? (
           <div className="space-y-3">
             <div className="text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wide px-1">
-              People ({people.length})
+              {t("sidebar.peopleCount", { count: people.length })}
             </div>
             {people.length === 0 ? (
               <div className="text-sm text-slate-500 dark:text-gray-400 italic text-center mt-10">
-                No people yet.
+                {t("sidebar.noPeople")}
               </div>
             ) : (
               <ul className="space-y-1">
                 {people.map((p) => {
-                  const label = [p.name, p.surname].filter(Boolean).join(" ") || "Unnamed";
+                  const label = [p.name, p.surname].filter(Boolean).join(" ") || t("sidebar.unnamed");
                   const dotClass =
                     p.gender === "f"
                       ? "bg-pink-300"
@@ -248,7 +258,7 @@ export function Sidebar() {
                           e.stopPropagation();
                           deletePerson(p.id);
                         }}
-                        aria-label={`Delete ${label}`}
+                        aria-label={t("sidebar.deleteNamed", { name: label })}
                         className="mr-1 p-1.5 rounded text-slate-400 hover:text-red-600 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -267,10 +277,10 @@ export function Sidebar() {
           </div>
         ) : (
           <>
-            {activeTab === "Personal" && (
+            {activeTab === "personal" && (
               <div className="space-y-4">
                 <div className="grid grid-cols-[100px_1fr] items-center gap-2">
-                  <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">Given names:</label>
+                  <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">{t("sidebar.givenNames")}</label>
                   <input
                     type="text"
                     className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-brand-link dark:focus:ring-blue-400 bg-slate-50 dark:bg-gray-800 dark:text-gray-200"
@@ -282,7 +292,7 @@ export function Sidebar() {
                   />
                 </div>
                 <div className="grid grid-cols-[100px_1fr] items-center gap-2">
-                  <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">Surname:</label>
+                  <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">{t("sidebar.surname")}</label>
                   <input
                     type="text"
                     className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-brand-link dark:focus:ring-blue-400 bg-slate-50 dark:bg-gray-800 dark:text-gray-200"
@@ -294,7 +304,7 @@ export function Sidebar() {
                   />
                 </div>
                 <div className="grid grid-cols-[100px_1fr] items-center gap-2">
-                  <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">Birth surname:</label>
+                  <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">{t("sidebar.birthSurname")}</label>
                   <input
                     type="text"
                     className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-brand-link dark:focus:ring-blue-400 bg-slate-50 dark:bg-gray-800 dark:text-gray-200"
@@ -307,7 +317,7 @@ export function Sidebar() {
                 </div>
 
                 <div className="grid grid-cols-[100px_1fr] items-center gap-2 mt-4">
-                  <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">Gender:</label>
+                  <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">{t("sidebar.gender")}</label>
                   <div className="flex items-center gap-3">
                     {(["f", "m", "o"] as const).map((g) => (
                       <label key={g} className="flex items-center gap-1 text-sm text-slate-700 dark:text-gray-300 cursor-pointer">
@@ -322,7 +332,7 @@ export function Sidebar() {
                           }}
                           className="accent-brand-link"
                         />
-                        {g === "f" ? "Female" : g === "m" ? "Male" : "Other"}
+                        {g === "f" ? t("sidebar.gender.female") : g === "m" ? t("sidebar.gender.male") : t("sidebar.gender.other")}
                       </label>
                     ))}
                   </div>
@@ -330,10 +340,10 @@ export function Sidebar() {
 
                 <div className="mt-4 border-t border-slate-100 dark:border-gray-700 pt-4 space-y-4">
                   <div className="grid grid-cols-[100px_1fr] items-center gap-2">
-                    <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">Born:</label>
+                    <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">{t("sidebar.born")}</label>
                     <DatePickerField
                       value={birthDate}
-                      ariaLabel="Born date"
+                      ariaLabel={t("sidebar.bornDateAria")}
                       onChange={(v) => {
                         setBirthDate(v);
                         dispatchUpdate("birthYear", v);
@@ -341,10 +351,10 @@ export function Sidebar() {
                     />
                   </div>
                   <div className="grid grid-cols-[100px_1fr] items-center gap-2">
-                    <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">in:</label>
+                    <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">{t("sidebar.in")}</label>
                     <input
                       type="text"
-                      placeholder="Place"
+                      placeholder={t("sidebar.placePlaceholder")}
                       className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-brand-link dark:focus:ring-blue-400 bg-slate-50 dark:bg-gray-800 dark:text-gray-200"
                       value={birthPlace}
                       onChange={(e) => {
@@ -357,10 +367,10 @@ export function Sidebar() {
 
                 <div className="mt-4 border-t border-slate-100 dark:border-gray-700 pt-4 space-y-4">
                   <div className="grid grid-cols-[100px_1fr] items-center gap-2">
-                    <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">Died:</label>
+                    <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">{t("sidebar.died")}</label>
                     <DatePickerField
                       value={deathDate}
-                      ariaLabel="Died date"
+                      ariaLabel={t("sidebar.diedDateAria")}
                       onChange={(v) => {
                         setDeathDate(v);
                         dispatchUpdate("deathDate", v);
@@ -368,10 +378,10 @@ export function Sidebar() {
                     />
                   </div>
                   <div className="grid grid-cols-[100px_1fr] items-center gap-2">
-                    <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">in:</label>
+                    <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">{t("sidebar.in")}</label>
                     <input
                       type="text"
-                      placeholder="Place"
+                      placeholder={t("sidebar.placePlaceholder")}
                       className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-brand-link dark:focus:ring-blue-400 bg-slate-50 dark:bg-gray-800 dark:text-gray-200"
                       value={deathPlace}
                       onChange={(e) => {
@@ -384,25 +394,28 @@ export function Sidebar() {
               </div>
             )}
 
-            {activeTab === "Relations" && (() => {
+            {activeTab === "relations" && (() => {
               const sections = Object.entries(relations).filter(([, list]) => list.length > 0);
               if (sections.length === 0) {
                 return (
                   <div className="text-sm text-slate-500 dark:text-gray-400 italic text-center mt-10">
-                    No relations yet.
+                    {t("sidebar.noRelations")}
                   </div>
                 );
               }
               return (
                 <div className="space-y-4">
-                  {sections.map(([title, list]) => (
+                  {sections.map(([title, list]) => {
+                    const titleKey = RELATION_KEY_TO_TRANSLATION[title];
+                    const heading = titleKey ? t(titleKey) : title;
+                    return (
                     <div key={title}>
                       <div className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wide px-1 mb-1">
-                        {title}
+                        {heading}
                       </div>
                       <ul className="space-y-1">
                         {list.map((p) => {
-                          const label = [p.name, p.surname].filter(Boolean).join(" ") || "Unnamed";
+                          const label = [p.name, p.surname].filter(Boolean).join(" ") || t("sidebar.unnamed");
                           const dotClass =
                             p.gender === "f"
                               ? "bg-pink-300"
@@ -423,15 +436,16 @@ export function Sidebar() {
                         })}
                       </ul>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               );
             })()}
 
-            {activeTab === "Contact" && (
+            {activeTab === "contact" && (
               <div className="space-y-4">
                 <div className="grid grid-cols-[80px_1fr] items-center gap-2">
-                  <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">Email:</label>
+                  <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">{t("sidebar.email")}</label>
                   <input
                     type="email"
                     className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-gray-600 rounded bg-slate-50 dark:bg-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-brand-link dark:focus:ring-blue-400"
@@ -443,7 +457,7 @@ export function Sidebar() {
                   />
                 </div>
                 <div className="grid grid-cols-[80px_1fr] items-center gap-2">
-                  <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">Phone:</label>
+                  <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">{t("sidebar.phone")}</label>
                   <input
                     type="tel"
                     className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-gray-600 rounded bg-slate-50 dark:bg-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-brand-link dark:focus:ring-blue-400"
@@ -455,7 +469,7 @@ export function Sidebar() {
                   />
                 </div>
                 <div className="grid grid-cols-[80px_1fr] items-start gap-2">
-                  <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right pt-1">Address:</label>
+                  <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right pt-1">{t("sidebar.address")}</label>
                   <textarea
                     rows={3}
                     className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-gray-600 rounded bg-slate-50 dark:bg-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-brand-link dark:focus:ring-blue-400"
@@ -469,11 +483,11 @@ export function Sidebar() {
               </div>
             )}
 
-            {activeTab === "Biography" && (
+            {activeTab === "biography" && (
               <div className="flex flex-col h-full">
                 <textarea
                   className="flex-1 w-full p-3 text-sm border border-slate-300 dark:border-gray-600 rounded bg-slate-50 dark:bg-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-brand-link dark:focus:ring-blue-400 resize-none"
-                  placeholder="Write biography details here..."
+                  placeholder={t("biography.placeholder")}
                   value={biography}
                   onChange={(e) => {
                     setBiography(e.target.value);

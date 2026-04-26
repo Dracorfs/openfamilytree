@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { createPortal } from "react-dom";
 import { DayPicker } from "react-day-picker";
 import { format, isValid, parse } from "date-fns";
+import { useTranslation } from "./LanguageProvider";
 
 const MIN_YEAR = 1700;
 const MAX_YEAR = new Date().getFullYear() + 5;
@@ -27,19 +28,21 @@ export function DatePickerField({
   value,
   onChange,
   ariaLabel,
-  placeholder = "Pick a date",
+  placeholder,
 }: {
   value: string;
   onChange: (v: string) => void;
   ariaLabel: string;
   placeholder?: string;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<Position | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
   const date = parseISO(value);
   const display = date ? format(date, "MMM d, yyyy") : "";
+  const placeholderText = placeholder ?? t("datepicker.pick");
 
   const updatePosition = useCallback(() => {
     const btn = buttonRef.current;
@@ -138,14 +141,14 @@ export function DatePickerField({
             <line x1="3" y1="10" x2="21" y2="10" />
           </svg>
           <span className={`truncate ${display ? "" : "text-slate-400 dark:text-gray-500"}`}>
-            {display || placeholder}
+            {display || placeholderText}
           </span>
         </span>
         {date ? (
           <button
             type="button"
             tabIndex={0}
-            aria-label="Clear date"
+            aria-label={t("datepicker.clear")}
             onClick={(e) => {
               e.stopPropagation();
               onChange("");

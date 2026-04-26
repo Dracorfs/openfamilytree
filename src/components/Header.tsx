@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTheme } from "./ThemeProvider";
+import { useTranslation } from "./LanguageProvider";
 
 interface UserSession {
   name: string;
@@ -11,6 +12,7 @@ export function Header() {
   const [user, setUser] = useState<UserSession | null>(null);
   const [loading, setLoading] = useState(true);
   const { theme, toggleTheme } = useTheme();
+  const { lang, toggleLang, t } = useTranslation();
 
   useEffect(() => {
     fetch("/api/auth/get-session", { credentials: "include" })
@@ -38,6 +40,8 @@ export function Header() {
     } catch {}
   }, []);
 
+  const nextLangLabel = lang === "en" ? "ES" : "EN";
+
   return (
     <header className="h-16 bg-brand-light dark:bg-gray-900 border-b border-brand-border dark:border-gray-700 px-6 flex items-center justify-between shadow-sm z-10 relative">
       <div className="flex items-center space-x-4">
@@ -46,7 +50,7 @@ export function Header() {
           OpenFamilyTree
         </h1>
         <span className="text-sm font-medium px-2 py-1 bg-amber-500 text-white rounded-md shadow-sm">
-          Beta
+          {t("header.beta")}
         </span>
       </div>
 
@@ -54,7 +58,7 @@ export function Header() {
         <button
           onClick={toggleTheme}
           className="p-2 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+          aria-label={theme === "light" ? t("header.themeSwitchToDark") : t("header.themeSwitchToLight")}
         >
           {theme === "light" ? (
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -76,16 +80,25 @@ export function Header() {
         </button>
 
         <button
+          onClick={toggleLang}
+          aria-label={t("header.languageSwitch")}
+          title={t("header.languageSwitch")}
+          className="px-2 py-1 min-w-[36px] text-xs font-bold text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-md transition-colors border border-slate-300 dark:border-gray-600"
+        >
+          {nextLangLabel}
+        </button>
+
+        <button
           onClick={() => user && document.dispatchEvent(new CustomEvent("save-family-tree"))}
           disabled={!user}
-          title={!user ? "Sign in to save your family tree" : undefined}
+          title={!user ? t("header.signInTooltip") : undefined}
           className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors shadow-sm ${
             user
               ? "text-slate-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-gray-700 cursor-pointer"
               : "text-slate-400 dark:text-gray-500 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 cursor-not-allowed"
           }`}
         >
-          Save
+          {t("header.save")}
         </button>
 
         {loading ? (
@@ -114,7 +127,7 @@ export function Header() {
               onClick={handleSignOut}
               className="px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 hover:border-red-300 dark:hover:border-red-700 transition-colors shadow-sm"
             >
-              Sign Out
+              {t("header.signOut")}
             </button>
           </div>
         ) : (
@@ -140,7 +153,7 @@ export function Header() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Sign in with Google
+            {t("header.signInGoogle")}
           </button>
         )}
       </div>

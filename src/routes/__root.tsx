@@ -1,5 +1,6 @@
 import { createRootRoute, Outlet, HeadContent, Scripts } from "@tanstack/react-router";
 import { ThemeProvider } from "../components/ThemeProvider";
+import { LanguageProvider } from "../components/LanguageProvider";
 import "../global.css";
 
 export const Route = createRootRoute({
@@ -15,7 +16,7 @@ export const Route = createRootRoute({
   component: RootComponent,
 });
 
-const themeInitScript = `(function(){try{var d=document.documentElement,t=localStorage.getItem("theme");if(t==="dark"){d.classList.add("dark");d.style.colorScheme="dark";d.style.backgroundColor="#1a1a2e";}else{d.style.colorScheme="light";d.style.backgroundColor="#FEFDFC";}}catch(e){}})();`;
+const themeInitScript = `(function(){try{var d=document.documentElement,t=localStorage.getItem("theme");if(t==="dark"){d.classList.add("dark");d.style.colorScheme="dark";d.style.backgroundColor="#1a1a2e";}else{d.style.colorScheme="light";d.style.backgroundColor="#FEFDFC";}var l=localStorage.getItem("lang");if(l==="es"||l==="en"){d.lang=l;}else{var n=(navigator.language||"en").slice(0,2).toLowerCase();d.lang=n==="es"?"es":"en";}}catch(e){}})();`;
 
 function RootComponent() {
   return (
@@ -25,9 +26,11 @@ function RootComponent() {
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body suppressHydrationWarning>
-        <ThemeProvider>
-          <Outlet />
-        </ThemeProvider>
+        <LanguageProvider>
+          <ThemeProvider>
+            <Outlet />
+          </ThemeProvider>
+        </LanguageProvider>
         <Scripts />
       </body>
     </html>
