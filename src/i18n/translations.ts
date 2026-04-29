@@ -6,6 +6,7 @@ const dictionaries = {
   en: {
     "header.beta": "Beta",
     "header.save": "Save",
+    "header.downloadPdf": "Download PDF",
     "header.signInTooltip": "Sign in to save your family tree",
     "header.signOut": "Sign Out",
     "header.signInGoogle": "Sign in with Google",
@@ -67,6 +68,7 @@ const dictionaries = {
     "canvas.savedSuccess": "Family tree saved successfully!",
     "canvas.saveFailed": "Failed to save family tree: {error}",
     "canvas.saveError": "An error occurred while saving.",
+    "canvas.pdfError": "An error occurred while generating the PDF.",
 
     "datepicker.pick": "Pick a date",
     "datepicker.clear": "Clear date",
@@ -74,6 +76,7 @@ const dictionaries = {
   es: {
     "header.beta": "Beta",
     "header.save": "Guardar",
+    "header.downloadPdf": "Descargar PDF",
     "header.signInTooltip": "Inicia sesión para guardar tu árbol genealógico",
     "header.signOut": "Cerrar sesión",
     "header.signInGoogle": "Iniciar sesión con Google",
@@ -135,6 +138,7 @@ const dictionaries = {
     "canvas.savedSuccess": "¡Árbol genealógico guardado correctamente!",
     "canvas.saveFailed": "Error al guardar el árbol genealógico: {error}",
     "canvas.saveError": "Ocurrió un error al guardar.",
+    "canvas.pdfError": "Ocurrió un error al generar el PDF.",
 
     "datepicker.pick": "Elegir fecha",
     "datepicker.clear": "Borrar fecha",

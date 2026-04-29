@@ -10,7 +10,11 @@ import {
   Handle,
   BackgroundVariant,
   BaseEdge,
+  getNodesBounds,
+  getViewportForBounds,
 } from "@xyflow/react";
+import { toPng } from "html-to-image";
+import { jsPDF } from "jspdf";
 import type { Node, Edge, NodeMouseHandler, EdgeProps } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useTheme } from "./ThemeProvider";
@@ -489,6 +493,58 @@ export function FamilyTreeCanvas() {
     document.addEventListener("save-family-tree", handleSave);
     return () => document.removeEventListener("save-family-tree", handleSave);
   }, [nodes, edges]);
+
+  useEffect(() => {
+    const handleDownloadPdf = async () => {
+      try {
+        const viewport = document.querySelector(
+          ".react-flow__viewport",
+        ) as HTMLElement | null;
+        if (!viewport || nodes.length === 0) return;
+
+        const padding = 40;
+        const bounds = getNodesBounds(nodes);
+        const imageWidth = Math.max(800, Math.ceil(bounds.width + padding * 2));
+        const imageHeight = Math.max(600, Math.ceil(bounds.height + padding * 2));
+        const transform = getViewportForBounds(
+          bounds,
+          imageWidth,
+          imageHeight,
+          0.5,
+          2,
+          0.1,
+        );
+
+        const bgColor =
+          theme === "dark" ? "#030712" : "#FEFDFC";
+        const dataUrl = await toPng(viewport, {
+          backgroundColor: bgColor,
+          width: imageWidth,
+          height: imageHeight,
+          style: {
+            width: `${imageWidth}px`,
+            height: `${imageHeight}px`,
+            transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.zoom})`,
+          },
+        });
+
+        const orientation = imageWidth >= imageHeight ? "landscape" : "portrait";
+        const pdf = new jsPDF({
+          orientation,
+          unit: "px",
+          format: [imageWidth, imageHeight],
+        });
+        pdf.addImage(dataUrl, "PNG", 0, 0, imageWidth, imageHeight);
+        pdf.save("family-tree.pdf");
+      } catch (err) {
+        console.error(err);
+        alert(tRef.current("canvas.pdfError"));
+      }
+    };
+    document.addEventListener("download-family-tree-pdf", handleDownloadPdf);
+    return () =>
+      document.removeEventListener("download-family-tree-pdf", handleDownloadPdf);
+  }, [nodes, theme]);
 
   return (
     <div className="w-full h-full bg-[#FEFDFC] dark:bg-gray-950">
