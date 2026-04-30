@@ -214,60 +214,84 @@ export function Sidebar() {
                   </span>
                 </span>
               </button>
-              {avatarEditing && (
-                <div className="w-full mb-4 flex flex-col gap-2">
-                  <input
-                    type="url"
-                    autoFocus
-                    placeholder={t("sidebar.avatarUrlPlaceholder")}
-                    className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-brand-link dark:focus:ring-blue-400 bg-white dark:bg-gray-800 dark:text-gray-200"
-                    value={avatarDraft}
-                    onChange={(e) => setAvatarDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        const v = avatarDraft.trim();
-                        setAvatarUrl(v);
-                        setAvatarBroken(false);
-                        dispatchUpdate("avatarUrl", v);
-                        setAvatarEditing(false);
-                      } else if (e.key === "Escape") {
-                        setAvatarEditing(false);
-                        setAvatarDraft(avatarUrl);
-                      }
-                    }}
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const v = avatarDraft.trim();
-                        setAvatarUrl(v);
-                        setAvatarBroken(false);
-                        dispatchUpdate("avatarUrl", v);
-                        setAvatarEditing(false);
+              {avatarEditing && (() => {
+                const trimmedDraft = avatarDraft.trim();
+                let avatarError: string | null = null;
+                if (trimmedDraft) {
+                  try {
+                    const u = new URL(trimmedDraft);
+                    if (u.protocol !== "http:" && u.protocol !== "https:") {
+                      avatarError = t("sidebar.avatarErrorProtocol");
+                    }
+                  } catch {
+                    avatarError = t("sidebar.avatarErrorInvalid");
+                  }
+                }
+                const commit = () => {
+                  if (avatarError) return;
+                  setAvatarUrl(trimmedDraft);
+                  setAvatarBroken(false);
+                  dispatchUpdate("avatarUrl", trimmedDraft);
+                  setAvatarEditing(false);
+                };
+                return (
+                  <div className="w-full mb-4 flex flex-col gap-2">
+                    <input
+                      type="url"
+                      autoFocus
+                      placeholder={t("sidebar.avatarUrlPlaceholder")}
+                      aria-invalid={avatarError ? true : undefined}
+                      aria-describedby={avatarError ? "avatar-url-error" : undefined}
+                      className={`w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 bg-white dark:bg-gray-800 dark:text-gray-200 ${
+                        avatarError
+                          ? "border-red-400 dark:border-red-500 focus:ring-red-400 dark:focus:ring-red-500"
+                          : "border-slate-300 dark:border-gray-600 focus:ring-brand-link dark:focus:ring-blue-400"
+                      }`}
+                      value={avatarDraft}
+                      onChange={(e) => setAvatarDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          commit();
+                        } else if (e.key === "Escape") {
+                          setAvatarEditing(false);
+                          setAvatarDraft(avatarUrl);
+                        }
                       }}
-                      className="flex-1 py-1 text-xs font-medium bg-brand-link text-white rounded hover:opacity-90 transition-opacity"
-                    >
-                      {t("sidebar.avatarSave")}
-                    </button>
-                    {avatarUrl && (
+                    />
+                    {avatarError && (
+                      <p id="avatar-url-error" className="text-xs text-red-600 dark:text-red-400">
+                        {avatarError}
+                      </p>
+                    )}
+                    <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => {
-                          setAvatarUrl("");
-                          setAvatarDraft("");
-                          setAvatarBroken(false);
-                          dispatchUpdate("avatarUrl", "");
-                          setAvatarEditing(false);
-                        }}
-                        className="flex-1 py-1 text-xs font-medium bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-300 dark:border-gray-600 rounded hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors"
+                        disabled={!!avatarError}
+                        onClick={commit}
+                        className="flex-1 py-1 text-xs font-medium bg-brand-link text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {t("sidebar.avatarRemove")}
+                        {t("sidebar.avatarSave")}
                       </button>
-                    )}
+                      {avatarUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAvatarUrl("");
+                            setAvatarDraft("");
+                            setAvatarBroken(false);
+                            dispatchUpdate("avatarUrl", "");
+                            setAvatarEditing(false);
+                          }}
+                          className="flex-1 py-1 text-xs font-medium bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-300 dark:border-gray-600 rounded hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                          {t("sidebar.avatarRemove")}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </>
           )}
           <h2 className="text-xl font-bold text-slate-800 dark:text-gray-100 text-center">{displayName}</h2>

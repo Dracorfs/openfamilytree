@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   MiniMap,
@@ -103,6 +103,12 @@ function PersonNode({ data, selected }: any) {
         ? "border-blue-300"
         : "border-slate-300";
 
+  const [imgBroken, setImgBroken] = useState(false);
+  useEffect(() => {
+    setImgBroken(false);
+  }, [data.avatarUrl]);
+  const showImg = !!data.avatarUrl && !imgBroken;
+
   return (
     <div
       className={`relative px-4 py-2 shadow-md rounded-md bg-white dark:bg-gray-800 border-2 ${borderColor} w-[152px] text-center cursor-pointer hover:shadow-lg transition-shadow ${
@@ -126,15 +132,13 @@ function PersonNode({ data, selected }: any) {
                 : "bg-slate-100 border-slate-300 text-slate-400"
           }`}
         >
-          {data.avatarUrl ? (
+          {showImg ? (
             <img
               src={data.avatarUrl}
               alt=""
               crossOrigin="anonymous"
               className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = "none";
-              }}
+              onError={() => setImgBroken(true)}
             />
           ) : (
             <svg

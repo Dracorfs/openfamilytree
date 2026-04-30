@@ -49,6 +49,8 @@ const dictionaries = {
     "sidebar.avatarSave": "Save",
     "sidebar.avatarRemove": "Remove",
     "sidebar.avatarAlt": "Avatar",
+    "sidebar.avatarErrorInvalid": "Enter a valid URL.",
+    "sidebar.avatarErrorProtocol": "URL must start with http:// or https://.",
 
     "sidebar.peopleCount": "People ({count})",
     "sidebar.noPeople": "No people yet.",
@@ -125,6 +127,8 @@ const dictionaries = {
     "sidebar.avatarSave": "Guardar",
     "sidebar.avatarRemove": "Quitar",
     "sidebar.avatarAlt": "Avatar",
+    "sidebar.avatarErrorInvalid": "Ingresa una URL válida.",
+    "sidebar.avatarErrorProtocol": "La URL debe empezar con http:// o https://.",
 
     "sidebar.peopleCount": "Personas ({count})",
     "sidebar.noPeople": "Aún no hay personas.",
