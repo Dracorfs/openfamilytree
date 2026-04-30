@@ -1,7 +1,7 @@
 import type { Node, Edge } from "@xyflow/react";
 
 export const PERSON_W = 152;
-export const PERSON_H = 56;
+export const PERSON_H = 104;
 export const UNION_W = 8;
 export const UNION_H = 8;
 
@@ -490,7 +490,7 @@ export function computeAutoLayout(
   for (const n of persons) {
     if (claimed.has(n.id)) continue;
     const subtree = layoutSubtree(n.id, g, claimed, kinds, deferred);
-    placeTree(subtree, !placedAny);
+    placeTree(subtree, !placedAny, n.id);
     placedAny = true;
   }
 

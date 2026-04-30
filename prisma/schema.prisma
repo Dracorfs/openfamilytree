@@ -47,6 +47,9 @@ model Person {
   // Bio
   biography    String?
 
+  // Avatar
+  avatarUrl    String?
+
   // Color label
   colorLabel   String?
 

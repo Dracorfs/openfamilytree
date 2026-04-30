@@ -53,6 +53,7 @@ export const Route = createFileRoute("/api/tree")({
                   nickname: node.data.name,
                   gender: node.data.gender || "o",
                   birthDate: node.data.birthYear,
+                  avatarUrl: node.data.avatarUrl || null,
                   posX: node.position.x,
                   posY: node.position.y,
                 },

@@ -116,6 +116,44 @@ function PersonNode({ data, selected }: any) {
       <Handle type="target" position={Position.Left} id="target-left" className="opacity-0" />
       <Handle type="target" position={Position.Right} id="target-right" className="opacity-0" />
 
+      <div className="flex justify-center mb-1">
+        <div
+          className={`w-9 h-9 rounded-full overflow-hidden flex items-center justify-center border ${
+            data.gender === "f"
+              ? "bg-pink-50 border-pink-300 text-pink-400"
+              : data.gender === "m"
+                ? "bg-blue-50 border-blue-300 text-blue-400"
+                : "bg-slate-100 border-slate-300 text-slate-400"
+          }`}
+        >
+          {data.avatarUrl ? (
+            <img
+              src={data.avatarUrl}
+              alt=""
+              crossOrigin="anonymous"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
+            />
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          )}
+        </div>
+      </div>
       <div className="font-bold text-slate-800 dark:text-gray-100 truncate">{data.name}</div>
       {data.birthYear && <div className="text-xs text-slate-500 dark:text-gray-400">{data.birthYear}</div>}
     </div>
