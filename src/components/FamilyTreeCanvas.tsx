@@ -38,6 +38,7 @@ interface PersonData {
   phone?: string;
   address?: string;
   biography?: string;
+  avatarUrl?: string;
   [key: string]: unknown;
 }
 

@@ -44,6 +44,12 @@ const dictionaries = {
     "sidebar.phone": "Phone:",
     "sidebar.address": "Address:",
 
+    "sidebar.editAvatar": "Edit avatar",
+    "sidebar.avatarUrlPlaceholder": "Paste image URL",
+    "sidebar.avatarSave": "Save",
+    "sidebar.avatarRemove": "Remove",
+    "sidebar.avatarAlt": "Avatar",
+
     "sidebar.peopleCount": "People ({count})",
     "sidebar.noPeople": "No people yet.",
     "sidebar.noRelations": "No relations yet.",
@@ -113,6 +119,12 @@ const dictionaries = {
     "sidebar.email": "Correo:",
     "sidebar.phone": "Teléfono:",
     "sidebar.address": "Dirección:",
+
+    "sidebar.editAvatar": "Editar avatar",
+    "sidebar.avatarUrlPlaceholder": "Pega URL de la imagen",
+    "sidebar.avatarSave": "Guardar",
+    "sidebar.avatarRemove": "Quitar",
+    "sidebar.avatarAlt": "Avatar",
 
     "sidebar.peopleCount": "Personas ({count})",
     "sidebar.noPeople": "Aún no hay personas.",

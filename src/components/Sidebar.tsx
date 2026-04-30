@@ -32,6 +32,10 @@ export function Sidebar() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [biography, setBiography] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarEditing, setAvatarEditing] = useState(false);
+  const [avatarDraft, setAvatarDraft] = useState("");
+  const [avatarBroken, setAvatarBroken] = useState(false);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -50,6 +54,10 @@ export function Sidebar() {
         setPhone("");
         setAddress("");
         setBiography("");
+        setAvatarUrl("");
+        setAvatarEditing(false);
+        setAvatarDraft("");
+        setAvatarBroken(false);
         setRelations({});
         return;
       }
@@ -67,6 +75,10 @@ export function Sidebar() {
       setPhone(detail.phone || "");
       setAddress(detail.address || "");
       setBiography(detail.biography || "");
+      setAvatarUrl(detail.avatarUrl || "");
+      setAvatarDraft(detail.avatarUrl || "");
+      setAvatarEditing(false);
+      setAvatarBroken(false);
     };
 
     document.addEventListener("node-selected", handler);
@@ -142,30 +154,102 @@ export function Sidebar() {
         )}
         <div className="flex flex-col items-center">
           {selectedId && (
-            <div
-              className={`w-24 h-24 rounded-lg border mb-4 shadow-sm flex items-center justify-center ${
-                gender === "f"
-                  ? "bg-pink-50 border-pink-300 text-pink-400"
-                  : gender === "m"
-                    ? "bg-blue-50 border-blue-300 text-blue-400"
-                    : "bg-slate-100 border-slate-300 text-slate-400"
-              }`}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setAvatarDraft(avatarUrl);
+                  setAvatarEditing((v) => !v);
+                }}
+                aria-label={t("sidebar.editAvatar")}
+                title={t("sidebar.editAvatar")}
+                className={`w-24 h-24 rounded-lg border mb-4 shadow-sm flex items-center justify-center overflow-hidden hover:opacity-90 transition-opacity ${
+                  gender === "f"
+                    ? "bg-pink-50 border-pink-300 text-pink-400"
+                    : gender === "m"
+                      ? "bg-blue-50 border-blue-300 text-blue-400"
+                      : "bg-slate-100 border-slate-300 text-slate-400"
+                }`}
               >
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </div>
+                {avatarUrl && !avatarBroken ? (
+                  <img
+                    src={avatarUrl}
+                    alt={t("sidebar.avatarAlt")}
+                    onError={() => setAvatarBroken(true)}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="32"
+                    height="32"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                )}
+              </button>
+              {avatarEditing && (
+                <div className="w-full mb-4 flex flex-col gap-2">
+                  <input
+                    type="url"
+                    autoFocus
+                    placeholder={t("sidebar.avatarUrlPlaceholder")}
+                    className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-brand-link dark:focus:ring-blue-400 bg-white dark:bg-gray-800 dark:text-gray-200"
+                    value={avatarDraft}
+                    onChange={(e) => setAvatarDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const v = avatarDraft.trim();
+                        setAvatarUrl(v);
+                        setAvatarBroken(false);
+                        dispatchUpdate("avatarUrl", v);
+                        setAvatarEditing(false);
+                      } else if (e.key === "Escape") {
+                        setAvatarEditing(false);
+                        setAvatarDraft(avatarUrl);
+                      }
+                    }}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const v = avatarDraft.trim();
+                        setAvatarUrl(v);
+                        setAvatarBroken(false);
+                        dispatchUpdate("avatarUrl", v);
+                        setAvatarEditing(false);
+                      }}
+                      className="flex-1 py-1 text-xs font-medium bg-brand-link text-white rounded hover:opacity-90 transition-opacity"
+                    >
+                      {t("sidebar.avatarSave")}
+                    </button>
+                    {avatarUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAvatarUrl("");
+                          setAvatarDraft("");
+                          setAvatarBroken(false);
+                          dispatchUpdate("avatarUrl", "");
+                          setAvatarEditing(false);
+                        }}
+                        className="flex-1 py-1 text-xs font-medium bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-300 dark:border-gray-600 rounded hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        {t("sidebar.avatarRemove")}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
           )}
           <h2 className="text-xl font-bold text-slate-800 dark:text-gray-100 text-center">{displayName}</h2>
           {displayBirth && <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{displayBirth}</p>}
