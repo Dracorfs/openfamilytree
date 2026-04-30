@@ -163,7 +163,7 @@ export function Sidebar() {
                 }}
                 aria-label={t("sidebar.editAvatar")}
                 title={t("sidebar.editAvatar")}
-                className={`w-24 h-24 rounded-lg border mb-4 shadow-sm flex items-center justify-center overflow-hidden hover:opacity-90 transition-opacity ${
+                className={`group relative w-24 h-24 rounded-lg border mb-4 shadow-sm flex items-center justify-center overflow-hidden transition-all hover:shadow-md hover:ring-2 hover:ring-brand-link dark:hover:ring-blue-400 hover:ring-offset-2 dark:hover:ring-offset-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-link dark:focus-visible:ring-blue-400 ${
                   gender === "f"
                     ? "bg-pink-50 border-pink-300 text-pink-400"
                     : gender === "m"
@@ -194,6 +194,25 @@ export function Sidebar() {
                     <circle cx="12" cy="7" r="4" />
                   </svg>
                 )}
+                <span className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/55 text-white opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                  <span className="text-[10px] font-medium uppercase tracking-wide">
+                    {t("sidebar.editAvatar")}
+                  </span>
+                </span>
               </button>
               {avatarEditing && (
                 <div className="w-full mb-4 flex flex-col gap-2">
