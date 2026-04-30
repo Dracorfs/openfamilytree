@@ -391,18 +391,42 @@ export function FamilyTreeCanvas() {
       let workingEdges: Edge[] = [...prevEdges];
 
       if (relation === "partner") {
-        const unionId = nextId("union");
-        const unionNode: Node = {
-          id: unionId,
-          type: "union",
-          position: { x: 0, y: 0 },
-          data: {},
-        };
-        workingNodes.push(newPerson, unionNode);
-        workingEdges.push(
-          makePartnerEdge(targetNodeId, unionId),
-          makePartnerEdge(newPersonId, unionId),
-        );
+        // If target is the sole partner of an existing union (e.g. union was
+        // created when target had a child alone), attach the new partner to
+        // that union so they share the children. Otherwise create a new union.
+        const targetUnions = prevEdges
+          .filter(
+            (ed) =>
+              ed.source === targetNodeId &&
+              prevNodes.find((n) => n.id === ed.target)?.type === "union",
+          )
+          .map((ed) => ed.target as string);
+        const soloUnion = targetUnions.find((uid) => {
+          const partners = prevEdges.filter(
+            (ed) =>
+              ed.target === uid &&
+              prevNodes.find((n) => n.id === ed.source)?.type === "person",
+          );
+          return partners.length === 1;
+        });
+
+        if (soloUnion) {
+          workingNodes.push(newPerson);
+          workingEdges.push(makePartnerEdge(newPersonId, soloUnion));
+        } else {
+          const unionId = nextId("union");
+          const unionNode: Node = {
+            id: unionId,
+            type: "union",
+            position: { x: 0, y: 0 },
+            data: {},
+          };
+          workingNodes.push(newPerson, unionNode);
+          workingEdges.push(
+            makePartnerEdge(targetNodeId, unionId),
+            makePartnerEdge(newPersonId, unionId),
+          );
+        }
       } else if (relation === "child") {
         let unionId = prevEdges.find(
           (ed) => ed.source === targetNodeId && prevNodes.find((n) => n.id === ed.target)?.type === "union",
