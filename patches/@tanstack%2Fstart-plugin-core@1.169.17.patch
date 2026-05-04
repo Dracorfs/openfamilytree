@@ -1,0 +1,50 @@
+diff --git a/dist/esm/schema.js b/dist/esm/schema.js
+index b90ad504c0311c51089372a98a09144334789439..76ec1bc62c2b674699a0d0ecfb2008f448776473 100644
+--- a/dist/esm/schema.js
++++ b/dist/esm/schema.js
+@@ -24,11 +24,7 @@ var importProtectionOptionsSchema = z.object({
+ 		"warn",
+ 		"off"
+ 	]).optional(),
+-	onViolation: z.function().args(z.any()).returns(z.union([
+-		z.boolean(),
+-		z.void(),
+-		z.promise(z.union([z.boolean(), z.void()]))
+-	])).optional(),
++	onViolation: z.any().optional(),
+ 	include: z.array(patternSchema).optional(),
+ 	exclude: z.array(patternSchema).optional(),
+ 	client: importProtectionEnvRulesSchema.optional(),
+@@ -98,10 +94,7 @@ var pagePrerenderOptionsSchema = z.object({
+ 	crawlLinks: z.boolean().optional(),
+ 	retryCount: z.number().optional(),
+ 	retryDelay: z.number().optional(),
+-	onSuccess: z.function().args(z.object({
+-		page: pageBaseSchema,
+-		html: z.string()
+-	})).returns(z.any()).optional(),
++	onSuccess: z.any().optional(),
+ 	headers: z.record(z.string(), z.string()).optional()
+ });
+ var spaSchema = z.object({
+@@ -136,10 +129,7 @@ var tanstackStartOptionsObjectSchema = z.object({
+ 	}).optional().default({}),
+ 	serverFns: z.object({
+ 		base: z.string().optional().default("/_serverFn"),
+-		generateFunctionId: z.function().args(z.object({
+-			filename: z.string(),
+-			functionName: z.string()
+-		})).returns(z.string().optional()).optional()
++		generateFunctionId: z.any().optional()
+ 	}).optional().default({}),
+ 	pages: z.array(pageSchema).optional().default([]),
+ 	sitemap: z.object({
+@@ -150,7 +140,7 @@ var tanstackStartOptionsObjectSchema = z.object({
+ 	prerender: z.object({
+ 		enabled: z.boolean().optional(),
+ 		concurrency: z.number().optional(),
+-		filter: z.function().args(pageSchema).returns(z.any()).optional(),
++		filter: z.any().optional(),
+ 		failOnError: z.boolean().optional(),
+ 		autoStaticPathsDiscovery: z.boolean().optional(),
+ 		maxRedirects: z.number().min(0).optional()

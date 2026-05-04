@@ -60,6 +60,7 @@
     "@tanstack/start-plugin-core>zod": "3.24.4"
   },
   "patchedDependencies": {
-    "@tanstack/router-generator@1.166.39": "patches/@tanstack%2Frouter-generator@1.166.39.patch"
+    "@tanstack/router-generator@1.166.39": "patches/@tanstack%2Frouter-generator@1.166.39.patch",
+    "@tanstack/start-plugin-core@1.169.17": "patches/@tanstack%2Fstart-plugin-core@1.169.17.patch"
   }
 }
