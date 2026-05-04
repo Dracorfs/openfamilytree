@@ -1,4 +1,4 @@
 {
-  "installCommand": "bun install --frozen-lockfile",
+  "installCommand": "bun install --frozen-lockfile --force",
   "buildCommand": "bun run build"
 }
