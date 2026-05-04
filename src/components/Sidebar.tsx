@@ -29,8 +29,6 @@ export function Sidebar() {
   const [deathDate, setDeathDate] = useState("");
   const [deathPlace, setDeathPlace] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
   const [biography, setBiography] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarEditing, setAvatarEditing] = useState(false);
@@ -51,8 +49,6 @@ export function Sidebar() {
         setDeathDate("");
         setDeathPlace("");
         setEmail("");
-        setPhone("");
-        setAddress("");
         setBiography("");
         setAvatarUrl("");
         setAvatarEditing(false);
@@ -72,8 +68,6 @@ export function Sidebar() {
       setDeathDate(detail.deathDate || "");
       setDeathPlace(detail.deathPlace || "");
       setEmail(detail.email || "");
-      setPhone(detail.phone || "");
-      setAddress(detail.address || "");
       setBiography(detail.biography || "");
       setAvatarUrl(detail.avatarUrl || "");
       setAvatarDraft(detail.avatarUrl || "");
@@ -580,30 +574,6 @@ export function Sidebar() {
                     onChange={(e) => {
                       setEmail(e.target.value);
                       dispatchUpdate("email", e.target.value);
-                    }}
-                  />
-                </div>
-                <div className="grid grid-cols-[80px_1fr] items-center gap-2">
-                  <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right">{t("sidebar.phone")}</label>
-                  <input
-                    type="tel"
-                    className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-gray-600 rounded bg-slate-50 dark:bg-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-brand-link dark:focus:ring-blue-400"
-                    value={phone}
-                    onChange={(e) => {
-                      setPhone(e.target.value);
-                      dispatchUpdate("phone", e.target.value);
-                    }}
-                  />
-                </div>
-                <div className="grid grid-cols-[80px_1fr] items-start gap-2">
-                  <label className="text-xs font-medium text-slate-600 dark:text-gray-400 text-right pt-1">{t("sidebar.address")}</label>
-                  <textarea
-                    rows={3}
-                    className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-gray-600 rounded bg-slate-50 dark:bg-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-brand-link dark:focus:ring-blue-400"
-                    value={address}
-                    onChange={(e) => {
-                      setAddress(e.target.value);
-                      dispatchUpdate("address", e.target.value);
                     }}
                   />
                 </div>

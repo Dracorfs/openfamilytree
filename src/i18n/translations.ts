@@ -41,8 +41,6 @@ const dictionaries = {
     "sidebar.diedDateAria": "Died date",
     "sidebar.placePlaceholder": "Place",
     "sidebar.email": "Email:",
-    "sidebar.phone": "Phone:",
-    "sidebar.address": "Address:",
 
     "sidebar.editAvatar": "Edit avatar",
     "sidebar.avatarUrlPlaceholder": "Paste image URL",
@@ -119,8 +117,6 @@ const dictionaries = {
     "sidebar.diedDateAria": "Fecha de fallecimiento",
     "sidebar.placePlaceholder": "Lugar",
     "sidebar.email": "Correo:",
-    "sidebar.phone": "Teléfono:",
-    "sidebar.address": "Dirección:",
 
     "sidebar.editAvatar": "Editar avatar",
     "sidebar.avatarUrlPlaceholder": "Pega URL de la imagen",

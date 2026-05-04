@@ -35,8 +35,6 @@ interface PersonData {
   deathDate?: string;
   deathPlace?: string;
   email?: string;
-  phone?: string;
-  address?: string;
   biography?: string;
   avatarUrl?: string;
   [key: string]: unknown;

@@ -40,8 +40,6 @@ model Person {
 
   // Contact
   email        String?
-  phone        String?
-  address      String?
   website      String?
 
   // Bio
