@@ -55,8 +55,6 @@
   },
   "overrides": {
     "@tanstack/router-core": "1.169.1",
-    "@tanstack/router-generator": {
-      "zod": "^3.25"
-    }
+    "@tanstack/router-generator>zod": "3.25.76"
   }
 }
