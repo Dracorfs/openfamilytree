@@ -22,7 +22,7 @@
     "@neondatabase/serverless": "^1.0.2",
     "@prisma/adapter-neon": "^7.5.0",
     "@prisma/client": "^7.8.0",
-    "@tanstack/react-router": "1.168.10",
+    "@tanstack/react-router": "1.169.1",
     "@tanstack/react-start": "^1.167.62",
     "@vitejs/plugin-react": "^6.0.1",
     "@xyflow/react": "^12.10.1",
