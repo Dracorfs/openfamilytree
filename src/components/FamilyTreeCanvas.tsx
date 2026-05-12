@@ -20,6 +20,7 @@ import "@xyflow/react/dist/style.css";
 import { useTheme } from "./ThemeProvider";
 import { useTranslation } from "./LanguageProvider";
 import { applyAutoLayout } from "../lib/treeLayout";
+import { UndoHistory } from "../lib/undoHistory";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -291,12 +292,41 @@ export function FamilyTreeCanvas() {
   const selectedNodeIdRef = useRef<string | null>(null);
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
+
+  /* -------- Undo history -------- */
+  const historyRef = useRef(new UndoHistory());
+
+  const pushHistory = useCallback(() => {
+    historyRef.current.push(nodesRef.current, edgesRef.current);
+  }, []);
+
+  const undo = useCallback(() => {
+    const prev = historyRef.current.pop();
+    if (!prev) return;
+    const laid = applyAutoLayout(prev.nodes, prev.edges);
+    setNodes(laid.nodes);
+    setEdges(laid.edges);
+    selectedNodeIdRef.current = null;
+    document.dispatchEvent(new CustomEvent("node-selected", { detail: null }));
+  }, [setNodes, setEdges]);
   useEffect(() => {
     nodesRef.current = nodes;
   }, [nodes]);
   useEffect(() => {
     edgesRef.current = edges;
   }, [edges]);
+
+  /* -------- Ctrl+Z / Cmd+Z keyboard shortcut -------- */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [undo]);
 
   const dispatchNodeSelected = useCallback((node: Node | null) => {
     document.dispatchEvent(
@@ -356,13 +386,14 @@ export function FamilyTreeCanvas() {
   useEffect(() => {
     const handler = (e: Event) => {
       const { nodeId, data } = (e as CustomEvent).detail;
+      pushHistory();
       setNodes((nds) =>
         nds.map((n) => (n.id !== nodeId ? n : { ...n, data: { ...n.data, ...data } })),
       );
     };
     document.addEventListener("update-node", handler);
     return () => document.removeEventListener("update-node", handler);
-  }, [setNodes]);
+  }, [setNodes, pushHistory]);
 
   /* -------- Add person -------- */
   useEffect(() => {
@@ -377,6 +408,7 @@ export function FamilyTreeCanvas() {
       const target = prevNodes.find((n) => n.id === targetNodeId);
       if (!target) return;
 
+      pushHistory();
       const newPersonId = nextId("person");
       const newPerson: Node = {
         id: newPersonId,
@@ -489,12 +521,13 @@ export function FamilyTreeCanvas() {
 
     document.addEventListener("add-person", handler);
     return () => document.removeEventListener("add-person", handler);
-  }, [setNodes, setEdges]);
+  }, [setNodes, setEdges, pushHistory]);
 
   /* -------- Delete person -------- */
   useEffect(() => {
     const handler = (e: Event) => {
       const { id } = (e as CustomEvent).detail as { id: string };
+      pushHistory();
       const prevNodes = nodesRef.current;
       const prevEdges = edgesRef.current;
 
@@ -537,7 +570,7 @@ export function FamilyTreeCanvas() {
     };
     document.addEventListener("delete-person", handler);
     return () => document.removeEventListener("delete-person", handler);
-  }, [setNodes, setEdges, dispatchNodeSelected]);
+  }, [setNodes, setEdges, dispatchNodeSelected, pushHistory]);
 
   useEffect(() => {
     const handleSave = async () => {
