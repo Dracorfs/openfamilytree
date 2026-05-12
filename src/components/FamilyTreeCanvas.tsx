@@ -21,6 +21,7 @@ import { useTheme } from "./ThemeProvider";
 import { useTranslation } from "./LanguageProvider";
 import { applyAutoLayout } from "../lib/treeLayout";
 import { UndoHistory } from "../lib/undoHistory";
+import { nextPersonId } from "../lib/nodeNavigation";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -327,6 +328,31 @@ export function FamilyTreeCanvas() {
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [undo]);
+
+  /* -------- Tab / Shift+Tab cycle through person nodes -------- */
+  useEffect(() => {
+    const isEditable = (el: EventTarget | null): boolean => {
+      if (!(el instanceof HTMLElement)) return false;
+      const tag = el.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+      return el.isContentEditable;
+    };
+
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (isEditable(e.target)) return;
+      e.preventDefault();
+      const dir = e.shiftKey ? "prev" : "next";
+      const target = nextPersonId(selectedNodeIdRef.current, nodesRef.current, dir);
+      if (!target) return;
+      document.dispatchEvent(
+        new CustomEvent("select-person-by-id", { detail: { id: target } }),
+      );
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
 
   const dispatchNodeSelected = useCallback((node: Node | null) => {
     document.dispatchEvent(

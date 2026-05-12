@@ -78,6 +78,10 @@ const dictionaries = {
 
     "datepicker.pick": "Pick a date",
     "datepicker.clear": "Clear date",
+
+    "notFound.title": "Page not found",
+    "notFound.message": "The page you are looking for does not exist.",
+    "notFound.home": "Back to home",
   },
   es: {
     "header.beta": "Beta",
@@ -154,6 +158,10 @@ const dictionaries = {
 
     "datepicker.pick": "Elegir fecha",
     "datepicker.clear": "Borrar fecha",
+
+    "notFound.title": "Página no encontrada",
+    "notFound.message": "La página que buscas no existe.",
+    "notFound.home": "Volver al inicio",
   },
 } as const;
 
