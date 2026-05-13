@@ -12,6 +12,10 @@ const dictionaries = {
     "header.themeSwitchToDark": "Switch to dark mode",
     "header.themeSwitchToLight": "Switch to light mode",
     "header.languageSwitch": "Switch language",
+    "header.openSidebar": "Open sidebar",
+    "header.closeSidebar": "Close sidebar",
+    "header.openMenu": "Open menu",
+    "header.closeMenu": "Close menu",
 
     "sidebar.tab.personal": "Personal",
     "sidebar.tab.relations": "Relations",
@@ -91,6 +95,10 @@ const dictionaries = {
     "header.themeSwitchToDark": "Cambiar a modo oscuro",
     "header.themeSwitchToLight": "Cambiar a modo claro",
     "header.languageSwitch": "Cambiar idioma",
+    "header.openSidebar": "Abrir barra lateral",
+    "header.closeSidebar": "Cerrar barra lateral",
+    "header.openMenu": "Abrir menú",
+    "header.closeMenu": "Cerrar menú",
 
     "sidebar.tab.personal": "Personal",
     "sidebar.tab.relations": "Relaciones",
