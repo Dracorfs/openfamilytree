@@ -49,9 +49,6 @@ export function Header() {
           <img src="/favicon.svg" alt="OpenFamilyTree Logo" className="w-6 h-6" />
           OpenFamilyTree
         </h1>
-        <span className="text-sm font-medium px-2 py-1 bg-amber-500 text-white rounded-md shadow-sm">
-          {t("header.beta")}
-        </span>
       </div>
 
       <div className="flex items-center space-x-3">

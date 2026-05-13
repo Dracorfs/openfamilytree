@@ -4,7 +4,6 @@ export const SUPPORTED_LANGS: Lang[] = ["en", "es"];
 
 const dictionaries = {
   en: {
-    "header.beta": "Beta",
     "header.save": "Save",
     "header.downloadPdf": "Download PDF",
     "header.signInTooltip": "Sign in to save your family tree",
@@ -84,7 +83,6 @@ const dictionaries = {
     "notFound.home": "Back to home",
   },
   es: {
-    "header.beta": "Beta",
     "header.save": "Guardar",
     "header.downloadPdf": "Descargar PDF",
     "header.signInTooltip": "Inicia sesión para guardar tu árbol genealógico",
