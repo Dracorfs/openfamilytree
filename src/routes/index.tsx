@@ -26,6 +26,18 @@ function HomePage() {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
+  useEffect(() => {
+    const onSelected = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && isMobile) {
+        setSidebarOpen(true);
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("node-selected", onSelected);
+    return () => document.removeEventListener("node-selected", onSelected);
+  }, [isMobile]);
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-brand-dark dark:bg-gray-950">
       <Header
