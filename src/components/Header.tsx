@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "./ThemeProvider";
 import { useTranslation } from "./LanguageProvider";
 
@@ -49,6 +49,29 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
   }, []);
 
   const nextLangLabel = lang === "en" ? "ES" : "EN";
+
+  const menuTouchStartXRef = useRef<number | null>(null);
+  const [menuDragOffset, setMenuDragOffset] = useState(0);
+  const menuDragging = menuDragOffset !== 0;
+
+  const handleMenuTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!menuOpen) return;
+    menuTouchStartXRef.current = e.touches[0].clientX;
+  }, [menuOpen]);
+
+  const handleMenuTouchMove = useCallback((e: React.TouchEvent) => {
+    if (menuTouchStartXRef.current == null) return;
+    const dx = e.touches[0].clientX - menuTouchStartXRef.current;
+    setMenuDragOffset(Math.max(0, dx));
+  }, []);
+
+  const handleMenuTouchEnd = useCallback(() => {
+    if (menuTouchStartXRef.current == null) return;
+    const shouldClose = menuDragOffset > 60;
+    menuTouchStartXRef.current = null;
+    setMenuDragOffset(0);
+    if (shouldClose) onCloseMenu();
+  }, [menuDragOffset, onCloseMenu]);
 
   const themeButton = (
     <button
@@ -219,7 +242,12 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
           onClick={onCloseMenu}
         />
         <aside
-          className={`absolute right-0 top-0 h-full w-72 max-w-[85vw] bg-brand-light dark:bg-gray-900 border-l border-brand-border dark:border-gray-700 shadow-xl transform transition-transform duration-200 ${
+          onTouchStart={handleMenuTouchStart}
+          onTouchMove={handleMenuTouchMove}
+          onTouchEnd={handleMenuTouchEnd}
+          onTouchCancel={handleMenuTouchEnd}
+          style={menuDragging ? { transform: `translateX(${menuDragOffset}px)` } : undefined}
+          className={`absolute right-0 top-0 h-full w-72 max-w-[85vw] bg-brand-light dark:bg-gray-900 border-l border-brand-border dark:border-gray-700 shadow-xl transform ${menuDragging ? "" : "transition-transform duration-200"} ${
             menuOpen ? "translate-x-0" : "translate-x-full"
           }`}
         >

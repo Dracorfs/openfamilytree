@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DatePickerField } from "./DatePickerField";
 import { useTranslation } from "./LanguageProvider";
 import { RELATION_KEY_TO_TRANSLATION, type TranslationKey } from "../i18n/translations";
@@ -132,8 +132,31 @@ export function Sidebar({ open, isMobile, onClose }: SidebarProps) {
   const displayName = personName || t("sidebar.selectPerson");
   const displayBirth = birthDate ? t("sidebar.bornShort", { date: birthDate }) : "";
 
+  const touchStartXRef = useRef<number | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const dragging = dragOffset !== 0;
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!isMobile || !open) return;
+    touchStartXRef.current = e.touches[0].clientX;
+  }, [isMobile, open]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (touchStartXRef.current == null) return;
+    const dx = e.touches[0].clientX - touchStartXRef.current;
+    setDragOffset(Math.min(0, dx));
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (touchStartXRef.current == null) return;
+    const shouldClose = dragOffset < -60;
+    touchStartXRef.current = null;
+    setDragOffset(0);
+    if (shouldClose) onClose();
+  }, [dragOffset, onClose]);
+
   const asideClass = isMobile
-    ? `fixed inset-y-0 left-0 z-40 w-[85vw] max-w-[360px] h-full bg-white dark:bg-gray-900 border-r border-brand-border dark:border-gray-700 shadow-lg flex flex-col transform transition-transform duration-200 ${
+    ? `fixed inset-y-0 left-0 z-40 w-[85vw] max-w-[360px] h-full bg-white dark:bg-gray-900 border-r border-brand-border dark:border-gray-700 shadow-lg flex flex-col transform ${dragging ? "" : "transition-transform duration-200"} ${
         open ? "translate-x-0" : "-translate-x-full"
       }`
     : "w-[360px] h-full bg-white dark:bg-gray-900 border-r border-brand-border dark:border-gray-700 shadow-lg flex flex-col z-10 relative";
@@ -149,7 +172,15 @@ export function Sidebar({ open, isMobile, onClose }: SidebarProps) {
           }`}
         />
       )}
-    <aside className={asideClass} aria-hidden={isMobile && !open}>
+    <aside
+      className={asideClass}
+      aria-hidden={isMobile && !open}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+      style={dragging ? { transform: `translateX(${dragOffset}px)` } : undefined}
+    >
       {isMobile && (
         <button
           onClick={onClose}
