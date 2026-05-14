@@ -50,41 +50,45 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
 
   const nextLangLabel = lang === "en" ? "ES" : "EN";
 
-  const actionButtons = (
+  const themeButton = (
+    <button
+      onClick={toggleTheme}
+      className="p-2 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+      aria-label={theme === "light" ? t("header.themeSwitchToDark") : t("header.themeSwitchToLight")}
+    >
+      {theme === "light" ? (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      ) : (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
+      )}
+    </button>
+  );
+
+  const langButton = (
+    <button
+      onClick={toggleLang}
+      aria-label={t("header.languageSwitch")}
+      title={t("header.languageSwitch")}
+      className="px-2 py-1 min-w-[36px] text-xs font-bold text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-md transition-colors border border-slate-300 dark:border-gray-600"
+    >
+      {nextLangLabel}
+    </button>
+  );
+
+  const restButtons = (
     <>
-      <button
-        onClick={toggleTheme}
-        className="p-2 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-        aria-label={theme === "light" ? t("header.themeSwitchToDark") : t("header.themeSwitchToLight")}
-      >
-        {theme === "light" ? (
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-          </svg>
-        ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="5" />
-            <line x1="12" y1="1" x2="12" y2="3" />
-            <line x1="12" y1="21" x2="12" y2="23" />
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-            <line x1="1" y1="12" x2="3" y2="12" />
-            <line x1="21" y1="12" x2="23" y2="12" />
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-          </svg>
-        )}
-      </button>
-
-      <button
-        onClick={toggleLang}
-        aria-label={t("header.languageSwitch")}
-        title={t("header.languageSwitch")}
-        className="px-2 py-1 min-w-[36px] text-xs font-bold text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-md transition-colors border border-slate-300 dark:border-gray-600"
-      >
-        {nextLangLabel}
-      </button>
-
       <button
         onClick={() => document.dispatchEvent(new CustomEvent("download-family-tree-pdf"))}
         className="px-4 py-1.5 text-sm font-medium rounded-md transition-colors shadow-sm text-slate-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-gray-700 cursor-pointer"
@@ -185,7 +189,9 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
         </div>
 
         <div className="hidden md:flex items-center space-x-3">
-          {actionButtons}
+          {themeButton}
+          {langButton}
+          {restButtons}
         </div>
 
         <button
@@ -233,7 +239,11 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
             </button>
           </div>
           <div className="p-4 flex flex-col items-stretch gap-3 [&>button]:w-full [&>div]:w-full">
-            {actionButtons}
+            <div className="flex flex-row items-center gap-3 !w-auto">
+              {themeButton}
+              {langButton}
+            </div>
+            {restButtons}
           </div>
         </aside>
       </div>
