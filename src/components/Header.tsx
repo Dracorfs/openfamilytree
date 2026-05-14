@@ -223,10 +223,7 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
             menuOpen ? "translate-x-0" : "translate-x-full"
           }`}
         >
-          <div className="flex items-center justify-between px-4 h-16 border-b border-brand-border dark:border-gray-700">
-            <span className="text-sm font-semibold text-brand-text dark:text-gray-100 uppercase tracking-wide">
-              {t("header.openMenu")}
-            </span>
+          <div className="flex items-center justify-end px-4 h-16 border-b border-brand-border dark:border-gray-700">
             <button
               onClick={onCloseMenu}
               aria-label={t("header.closeMenu")}
