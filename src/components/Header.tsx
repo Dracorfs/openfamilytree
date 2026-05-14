@@ -86,6 +86,13 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
       </button>
 
       <button
+        onClick={() => document.dispatchEvent(new CustomEvent("download-family-tree-pdf"))}
+        className="px-4 py-1.5 text-sm font-medium rounded-md transition-colors shadow-sm text-slate-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-gray-700 cursor-pointer"
+      >
+        {t("header.downloadPdf")}
+      </button>
+
+      <button
         onClick={() => user && document.dispatchEvent(new CustomEvent("save-family-tree"))}
         disabled={!user}
         title={!user ? t("header.signInTooltip") : undefined}
@@ -96,13 +103,6 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
         }`}
       >
         {t("header.save")}
-      </button>
-
-      <button
-        onClick={() => document.dispatchEvent(new CustomEvent("download-family-tree-pdf"))}
-        className="px-4 py-1.5 text-sm font-medium rounded-md transition-colors shadow-sm text-slate-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-gray-700 cursor-pointer"
-      >
-        {t("header.downloadPdf")}
       </button>
 
       {loading ? (
