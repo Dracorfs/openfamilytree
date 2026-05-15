@@ -182,19 +182,24 @@ export function Sidebar({ open, isMobile, onClose }: SidebarProps) {
       style={dragging ? { transform: `translateX(${dragOffset}px)` } : undefined}
     >
       {isMobile && (
-        <button
-          onClick={onClose}
-          aria-label={t("header.closeSidebar")}
-          className="absolute top-2 left-2 z-10 p-2 rounded-md text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
+        <div className="relative flex items-center justify-center h-16 px-4 border-b border-brand-border dark:border-gray-700 bg-brand-light dark:bg-gray-900 shrink-0">
+          <button
+            onClick={onClose}
+            aria-label={t("header.closeSidebar")}
+            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-md text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+          <h2 className="text-xl font-bold text-brand-text dark:text-gray-100 tracking-tight truncate px-12">
+            {displayName}
+          </h2>
+        </div>
       )}
       {/* Sidebar Header (Person Info) */}
-      <div className="relative p-6 border-b border-brand-border dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50">
+      <div className={`relative p-6 border-b border-brand-border dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50${selectedId ? "" : " hidden md:block"}`}>
         {selectedId && (
           <button
             onClick={() => deletePerson(selectedId)}
@@ -353,8 +358,10 @@ export function Sidebar({ open, isMobile, onClose }: SidebarProps) {
               })()}
             </>
           )}
-          <h2 className="text-xl font-bold text-slate-800 dark:text-gray-100 text-center">{displayName}</h2>
-          {displayBirth && <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{displayBirth}</p>}
+          <div className="hidden md:block text-center">
+            <h2 className="text-xl font-bold text-slate-800 dark:text-gray-100">{displayName}</h2>
+            {displayBirth && <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{displayBirth}</p>}
+          </div>
         </div>
 
         {selectedId && (
