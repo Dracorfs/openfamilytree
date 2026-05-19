@@ -239,9 +239,27 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
     <>
       <button
         onClick={() => document.dispatchEvent(new CustomEvent("download-family-tree-pdf"))}
-        className="px-4 py-1.5 text-sm font-medium rounded-md transition-colors shadow-sm text-slate-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-gray-700 cursor-pointer"
+        aria-label={t("header.downloadPdf")}
+        title={t("header.downloadPdf")}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors shadow-sm text-slate-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-gray-700 cursor-pointer"
       >
-        {t("header.downloadPdf")}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="flex-shrink-0"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        PDF
       </button>
 
       {loading ? (
