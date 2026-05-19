@@ -607,7 +607,7 @@ export function FamilyTreeCanvas() {
           body: JSON.stringify({ nodes, edges }),
         });
         const result = await response.json();
-        if (result.success) alert(tRef.current("canvas.savedSuccess"));
+        if (result.success) document.dispatchEvent(new CustomEvent("save-family-tree-success"));
         else alert(tRef.current("canvas.saveFailed", { error: result.error }));
       } catch (err) {
         console.error(err);

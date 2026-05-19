@@ -19,6 +19,7 @@ interface HeaderProps {
 export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onToggleSidebar }: HeaderProps) {
   const [user, setUser] = useState<UserSession | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saved, setSaved] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { lang, toggleLang, t } = useTranslation();
 
@@ -30,6 +31,20 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    const handler = () => {
+      setSaved(true);
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => setSaved(false), 2000);
+    };
+    document.addEventListener("save-family-tree-success", handler);
+    return () => {
+      document.removeEventListener("save-family-tree-success", handler);
+      if (timeout) clearTimeout(timeout);
+    };
   }, []);
 
   const handleSignIn = useCallback(async () => {
@@ -161,6 +176,23 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
     </svg>
   );
 
+  const checkIcon = (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="flex-shrink-0"
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+
   const signOutIcon = (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -249,10 +281,18 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
     <div className="flex items-center h-10 pl-1 pr-1 rounded-full bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 shadow-sm">
       {user ? (
         <button
+          type="button"
           onClick={() => document.dispatchEvent(new CustomEvent("save-family-tree"))}
-          className="flex items-center gap-2 pl-3 pr-3 h-8 rounded-full text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors"
+          disabled={saved}
+          className={`flex items-center gap-2 pl-3 pr-3 h-8 rounded-full text-sm font-medium transition-colors duration-200 ${
+            saved
+              ? "bg-emerald-500 text-white cursor-default"
+              : "text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-700"
+          }`}
         >
-          {saveIcon}
+          <span key={saved ? "check" : "save"} className="inline-flex animate-[saveCheckPop_300ms_ease-out]">
+            {saved ? checkIcon : saveIcon}
+          </span>
           {t("header.save")}
         </button>
       ) : (
@@ -350,10 +390,18 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
     <div className="flex items-center h-10 px-1 rounded-full bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 shadow-sm">
       {user ? (
         <button
+          type="button"
           onClick={() => document.dispatchEvent(new CustomEvent("save-family-tree"))}
-          className="flex-1 flex items-center justify-center gap-2 h-8 rounded-full text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors"
+          disabled={saved}
+          className={`flex-1 flex items-center justify-center gap-2 h-8 rounded-full text-sm font-medium transition-colors duration-200 ${
+            saved
+              ? "bg-emerald-500 text-white cursor-default"
+              : "text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-700"
+          }`}
         >
-          {saveIcon}
+          <span key={saved ? "check" : "save"} className="inline-flex animate-[saveCheckPop_300ms_ease-out]">
+            {saved ? checkIcon : saveIcon}
+          </span>
           {t("header.save")}
         </button>
       ) : (
