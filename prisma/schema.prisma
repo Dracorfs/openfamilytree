@@ -10,9 +10,27 @@ generator client {
 model Family {
   id        String   @id @default(cuid())
   name      String?
+  ownerId   String   @unique
+  owner     User     @relation("FamilyOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members   FamilyMember[]
+  treeData  Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   persons   Person[]
+}
+
+model FamilyMember {
+  id          String   @id @default(cuid())
+  userId      String
+  familyId    String
+  role        String   // "owner" | "editor" | "viewer"
+  invitedById String?
+  joinedAt    DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family      Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, familyId])
+  @@index([familyId])
 }
 
 model Person {
@@ -89,6 +107,8 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  ownedFamily   Family?       @relation("FamilyOwner")
+  memberships   FamilyMember[]
 
   @@map("user")
 }

@@ -294,6 +294,36 @@ export function FamilyTreeCanvas() {
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const sessRes = await fetch("/api/auth/get-session", { credentials: "include" });
+        const sess = sessRes.ok ? await sessRes.json() : null;
+        if (!sess?.user) return;
+        const treeRes = await fetch("/api/tree", { credentials: "include" });
+        if (!treeRes.ok) return;
+        const data = await treeRes.json();
+        if (cancelled) return;
+        const tree = data?.tree;
+        if (
+          data?.success &&
+          tree &&
+          Array.isArray(tree.nodes) &&
+          Array.isArray(tree.edges) &&
+          tree.nodes.length > 0
+        ) {
+          const laid = applyAutoLayout(tree.nodes, tree.edges);
+          setNodes(laid.nodes);
+          setEdges(laid.edges);
+        }
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [setNodes, setEdges]);
+
   /* -------- Undo history -------- */
   const historyRef = useRef(new UndoHistory());
 

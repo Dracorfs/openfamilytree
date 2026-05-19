@@ -1,11 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getPrismaClient } from "../../db/client";
+import { getAuth } from "../../lib/auth";
 
 export const Route = createFileRoute("/api/tree")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
+      GET: async ({ request }) => {
         try {
+          const session = await getAuth().api.getSession({ headers: request.headers });
+          if (!session?.user) {
+            return Response.json({ success: true, tree: null });
+          }
           const dbUrl = process.env.DATABASE_URL;
           if (!dbUrl) {
             return Response.json(
@@ -13,95 +18,46 @@ export const Route = createFileRoute("/api/tree")({
               { status: 500 },
             );
           }
-
+          const prisma = getPrismaClient(dbUrl);
+          const family = await (prisma.family as any).findUnique({
+            where: { ownerId: session.user.id },
+          });
+          return Response.json({ success: true, tree: family?.treeData ?? null });
+        } catch (error: any) {
+          console.error("Failed to load tree:", error);
+          return Response.json({ success: false, error: error.message }, { status: 500 });
+        }
+      },
+      POST: async ({ request }) => {
+        try {
+          const session = await getAuth().api.getSession({ headers: request.headers });
+          if (!session?.user) {
+            return Response.json(
+              { success: false, error: "Unauthenticated" },
+              { status: 401 },
+            );
+          }
+          const dbUrl = process.env.DATABASE_URL;
+          if (!dbUrl) {
+            return Response.json(
+              { success: false, error: "Database URL not configured in environment" },
+              { status: 500 },
+            );
+          }
           const prisma = getPrismaClient(dbUrl);
           const { nodes = [], edges = [] } = await request.json();
-
-          let family = await prisma.family.findFirst();
-          if (!family) {
-            family = await prisma.family.create({
-              data: { name: "My Family Tree" },
-            });
-          }
-
-          await prisma.$transaction(async (tx: any) => {
-            await tx.relationship.deleteMany({
-              where: {
-                OR: [
-                  { personA: { familyId: family!.id } },
-                  { personB: { familyId: family!.id } },
-                ],
+          await (prisma.family as any).upsert({
+            where: { ownerId: session.user.id },
+            create: {
+              ownerId: session.user.id,
+              name: "My Family Tree",
+              treeData: { nodes, edges },
+              members: {
+                create: { userId: session.user.id, role: "owner" },
               },
-            });
-            await tx.person.deleteMany({
-              where: { familyId: family!.id },
-            });
-
-            const personNodes = nodes.filter((n: any) => n.type === "person");
-            const personIdMap = new Map<string, string>();
-
-            for (const node of personNodes) {
-              const names = (node.data.name || "").split(" ");
-              const surname = names.length > 1 ? names.pop() : "";
-              const givenNames = names.join(" ");
-
-              const person = await tx.person.create({
-                data: {
-                  familyId: family!.id,
-                  givenNames,
-                  surname,
-                  nickname: node.data.name,
-                  gender: node.data.gender || "o",
-                  birthDate: node.data.birthYear,
-                  avatarUrl: node.data.avatarUrl || null,
-                  posX: node.position.x,
-                  posY: node.position.y,
-                },
-              });
-              personIdMap.set(node.id, person.id);
-            }
-
-            const unionNodes = nodes.filter((n: any) => n.type === "union");
-
-            for (const union of unionNodes) {
-              const partnerEdges = edges.filter((e: any) => e.target === union.id);
-              const partnerIds = partnerEdges
-                .map((e: any) => personIdMap.get(e.source))
-                .filter(Boolean) as string[];
-
-              if (partnerIds.length >= 2) {
-                for (let i = 0; i < partnerIds.length; i++) {
-                  for (let j = i + 1; j < partnerIds.length; j++) {
-                    await tx.relationship.create({
-                      data: {
-                        type: "partner",
-                        personAId: partnerIds[i],
-                        personBId: partnerIds[j],
-                      },
-                    });
-                  }
-                }
-              }
-
-              const childEdges = edges.filter((e: any) => e.source === union.id);
-              const childIds = childEdges
-                .map((e: any) => personIdMap.get(e.target))
-                .filter(Boolean) as string[];
-
-              for (const parentId of partnerIds) {
-                for (const childId of childIds) {
-                  await tx.relationship.create({
-                    data: {
-                      type: "parent-child",
-                      personAId: parentId,
-                      personBId: childId,
-                    },
-                  });
-                }
-              }
-            }
+            },
+            update: { treeData: { nodes, edges } },
           });
-
           return Response.json({ success: true, message: "Tree saved successfully" });
         } catch (error: any) {
           console.error("Failed to save tree:", error);
