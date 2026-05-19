@@ -104,9 +104,20 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
       onClick={toggleLang}
       aria-label={t("header.languageSwitch")}
       title={t("header.languageSwitch")}
-      className="px-2 py-1 min-w-[36px] text-xs font-bold text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-md transition-colors border border-slate-300 dark:border-gray-600"
+      className="flex items-center gap-1 p-2 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-md transition-colors"
     >
-      {nextLangLabel}
+      <span className="text-xs font-bold leading-none">{nextLangLabel}</span>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <polygon points="12 4 6 10 18 10" />
+        <polygon points="12 20 6 14 18 14" />
+      </svg>
     </button>
   );
 
