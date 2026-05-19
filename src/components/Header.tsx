@@ -291,10 +291,14 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
           </h1>
         </div>
 
-        <div className="hidden md:flex items-center space-x-3">
-          {themeButton}
-          {langButton}
-          {restButtons}
+        <div className="hidden md:flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            {themeButton}
+            {langButton}
+          </div>
+          <div className="flex items-center gap-3">
+            {restButtons}
+          </div>
         </div>
 
         <button
