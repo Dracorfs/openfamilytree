@@ -268,18 +268,55 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
     </div>
   );
 
+  const menuAvatarVisual = (
+    <span className="block w-8 h-8 ml-1 rounded-full overflow-hidden flex-shrink-0">
+      {user ? (
+        user.image ? (
+          <img
+            src={user.image}
+            alt={user.name}
+            className="w-8 h-8 rounded-full object-cover"
+            width={32}
+            height={32}
+          />
+        ) : (
+          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 font-bold text-sm">
+            {user.name?.charAt(0)?.toUpperCase() || "?"}
+          </span>
+        )
+      ) : (
+        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-gray-700 border border-slate-300 dark:border-gray-600 text-slate-400 dark:text-gray-400">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </span>
+      )}
+    </span>
+  );
+
   const menuPill = (
-    <div className="md:hidden flex items-center h-10 pl-1 pr-1 rounded-full bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 shadow-sm">
-      <button
-        type="button"
-        onClick={onToggleMenu}
-        aria-label={menuOpen ? t("header.closeMenu") : t("header.openMenu")}
-        className="flex items-center justify-center w-8 h-8 rounded-full text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors"
-      >
+    <button
+      type="button"
+      onClick={onToggleMenu}
+      aria-label={menuOpen ? t("header.closeMenu") : t("header.openMenu")}
+      className="md:hidden flex items-center h-10 pl-1 pr-1 rounded-full bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 shadow-sm hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors"
+    >
+      <span className="flex items-center justify-center w-8 h-8 rounded-full text-slate-700 dark:text-gray-200">
         {gearIcon}
-      </button>
-      {accountAvatar}
-    </div>
+      </span>
+      {menuAvatarVisual}
+    </button>
   );
 
   const downloadButton = (
