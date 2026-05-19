@@ -252,7 +252,7 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
         onClick={() => document.dispatchEvent(new CustomEvent("download-family-tree-pdf"))}
         aria-label={t("header.downloadPdf")}
         title={t("header.downloadPdf")}
-        className="flex items-center gap-1.5 h-10 px-4 text-sm font-medium rounded-full shadow-sm text-slate-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors"
+        className="flex items-center gap-1.5 h-10 px-4 text-sm font-medium rounded-full shadow-sm text-slate-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors !w-auto self-start"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
