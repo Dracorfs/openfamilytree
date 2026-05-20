@@ -50,7 +50,6 @@ export const Route = createFileRoute("/api/tree")({
             where: { ownerId: session.user.id },
             create: {
               ownerId: session.user.id,
-              name: "My Family Tree",
               treeData: { nodes, edges },
               members: {
                 create: { userId: session.user.id, role: "owner" },

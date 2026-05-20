@@ -9,7 +9,6 @@ generator client {
 
 model Family {
   id        String   @id @default(cuid())
-  name      String?
   ownerId   String   @unique
   owner     User     @relation("FamilyOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members   FamilyMember[]
