@@ -54,10 +54,8 @@ export function Header({ menuOpen, sidebarOpen, onToggleMenu, onCloseMenu, onTog
 
   const handleSignOut = useCallback(async () => {
     try {
-      await fetch("/api/auth/sign-out", {
-        method: "POST",
-        credentials: "include",
-      });
+      const { signOut } = await import("../lib/auth-client");
+      await signOut();
       setUser(null);
       window.location.reload();
     } catch {}
