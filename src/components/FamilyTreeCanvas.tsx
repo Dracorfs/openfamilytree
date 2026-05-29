@@ -637,8 +637,23 @@ export function FamilyTreeCanvas() {
           body: JSON.stringify({ nodes, edges }),
         });
         const result = await response.json();
-        if (result.success) document.dispatchEvent(new CustomEvent("save-family-tree-success"));
-        else alert(tRef.current("canvas.saveFailed", { error: result.error }));
+        if (result.success) {
+          const idMap: Record<string, string> | undefined = result.idMap;
+          if (idMap) {
+            setNodes((ns) => ns.map((n) => ({ ...n, id: idMap[n.id] ?? n.id })));
+            setEdges((es) =>
+              es.map((e) => ({
+                ...e,
+                id: idMap[e.id] ?? e.id,
+                source: idMap[e.source] ?? e.source,
+                target: idMap[e.target] ?? e.target,
+              })),
+            );
+          }
+          document.dispatchEvent(new CustomEvent("save-family-tree-success"));
+        } else {
+          alert(tRef.current("canvas.saveFailed", { error: result.error }));
+        }
       } catch (err) {
         console.error(err);
         alert(tRef.current("canvas.saveError"));
@@ -646,7 +661,7 @@ export function FamilyTreeCanvas() {
     };
     document.addEventListener("save-family-tree", handleSave);
     return () => document.removeEventListener("save-family-tree", handleSave);
-  }, [nodes, edges]);
+  }, [nodes, edges, setNodes, setEdges]);
 
   useEffect(() => {
     const handleDownloadPdf = async () => {

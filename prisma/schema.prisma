@@ -8,14 +8,16 @@ generator client {
 }
 
 model Family {
-  id        String   @id @default(cuid())
-  ownerId   String   @unique
-  owner     User     @relation("FamilyOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members   FamilyMember[]
-  treeData  Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  persons   Person[]
+  id            String         @id @default(cuid())
+  ownerId       String         @unique
+  owner         User           @relation("FamilyOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members       FamilyMember[]
+  treeData      Json?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  persons       Person[]
+  unions        Union[]
+  relationships Relationship[]
 }
 
 model FamilyMember {
@@ -35,63 +37,62 @@ model FamilyMember {
 model Person {
   id           String   @id @default(cuid())
   familyId     String
-  family       Family   @relation(fields: [familyId], references: [id])
+  family       Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
 
-  // Names
-  givenNames   String?
+  name         String?
   surname      String?
   birthSurname String?
-  nickname     String?
-  title        String?
-  suffix       String?
-
-  // Demographics
-  gender       String?  // "m" | "f" | "o"
+  gender       String?
   otherGender  String?
 
-  // Dates
-  birthDate    String?
+  birthYear    String?
   birthPlace   String?
   deathDate    String?
-  deathPlace   String?
 
-  // Contact
   email        String?
-  website      String?
-
-  // Bio
   biography    String?
-
-  // Avatar
   avatarUrl    String?
-
-  // Color label
   colorLabel   String?
 
-  // Canvas position
   posX         Float    @default(0)
   posY         Float    @default(0)
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  // Relations
-  relationsA   Relationship[] @relation("personA")
-  relationsB   Relationship[] @relation("personB")
+  @@index([familyId])
+}
+
+model Union {
+  id        String   @id @default(cuid())
+  familyId  String
+  family    Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  posX      Float    @default(0)
+  posY      Float    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([familyId])
 }
 
 model Relationship {
-  id       String @id @default(cuid())
-  type     String // "partner" | "parent-child" | "sibling"
-  personA  Person @relation("personA", fields: [personAId], references: [id], onDelete: Cascade)
-  personAId String
-  personB  Person @relation("personB", fields: [personBId], references: [id], onDelete: Cascade)
-  personBId String
+  id        String @id @default(cuid())
+  familyId  String
+  family    Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
 
-  // Extra metadata
-  subtype  String? // "married" | "divorced" | "biological" | "adopted" etc.
+  type      String // "partner" | "parent-child"
 
-  @@unique([personAId, personBId, type])
+  nodeAType String // "person" | "union"
+  nodeAId   String
+  nodeBType String
+  nodeBId   String
+
+  createdAt DateTime @default(now())
+
+  @@unique([familyId, nodeAId, nodeBId, type])
+  @@index([familyId])
 }
 
 // ─── Better Auth tables ─────────────────────────────────────
