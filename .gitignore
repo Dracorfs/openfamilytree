@@ -51,7 +51,6 @@ pnpm-lock.yaml
 yarn.lock
 package-lock.json
 deno.json
-bun.lock
 
 # Vercel
 .vercel
