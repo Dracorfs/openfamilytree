@@ -193,12 +193,30 @@ describe("deserializeFromDb", () => {
     const A = idMap["person-A"], B = idMap["person-B"], U = idMap["union-U"];
 
     const connectsA = edges.some(
-      (e) => (e.source === A && e.target === U) || (e.source === U && e.target === A),
+      (e) => e.source === A && e.target === U,
     );
     const connectsB = edges.some(
-      (e) => (e.source === B && e.target === U) || (e.source === U && e.target === B),
+      (e) => e.source === B && e.target === U,
     );
     expect(connectsA).toBe(true);
     expect(connectsB).toBe(true);
+  });
+
+  it("partner edges always deserialize as person→union regardless of cuid sort order", () => {
+    const { nodes, edges } = deserializeFromDb(
+      [
+        { id: "zzz_person", familyId: FAMILY, name: "X", surname: null, birthSurname: null, gender: null, otherGender: null, birthYear: null, birthPlace: null, deathDate: null, email: null, biography: null, avatarUrl: null, colorLabel: null, posX: 0, posY: 0 },
+      ],
+      [
+        { id: "aaa_union", familyId: FAMILY, posX: 0, posY: 0 },
+      ],
+      [
+        { id: "r1", familyId: FAMILY, type: "partner", nodeAType: "union", nodeAId: "aaa_union", nodeBType: "person", nodeBId: "zzz_person" },
+      ],
+    );
+    const edge = edges[0];
+    expect(edge.source).toBe("zzz_person");
+    expect(edge.target).toBe("aaa_union");
+    expect(edge.type).toBe("partner");
   });
 });

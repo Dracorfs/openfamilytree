@@ -183,12 +183,23 @@ export function deserializeFromDb(
     });
   }
 
-  const edges: ReactFlowEdge[] = relationships.map((r) => ({
-    id: r.id,
-    source: r.nodeAId,
-    target: r.nodeBId,
-    type: r.type === "partner" ? "partner" : "smoothstep",
-  }));
+  const edges: ReactFlowEdge[] = relationships.map((r) => {
+    if (r.type === "partner") {
+      const personIsA = r.nodeAType === "person";
+      return {
+        id: r.id,
+        source: personIsA ? r.nodeAId : r.nodeBId,
+        target: personIsA ? r.nodeBId : r.nodeAId,
+        type: "partner",
+      };
+    }
+    return {
+      id: r.id,
+      source: r.nodeAId,
+      target: r.nodeBId,
+      type: "smoothstep",
+    };
+  });
 
   return { nodes, edges };
 }
