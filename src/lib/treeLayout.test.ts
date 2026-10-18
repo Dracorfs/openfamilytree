@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import type { Node, Edge } from "@xyflow/react";
-import { computeAutoLayout, PERSON_W } from "./treeLayout";
+import { computeAutoLayout, PERSON_W, PERSON_H, UNION_W, UNION_H } from "./treeLayout";
 
 function person(id: string): Node {
   return { id, type: "person", position: { x: 0, y: 0 }, data: {} };
@@ -237,4 +237,238 @@ test("partner shares row with spouse (same y)", () => {
   const pos = computeAutoLayout(nodes, edges);
   assert.equal(pos.get("me")!.y, pos.get("partner")!.y);
   assert.equal(pos.get("me")!.y, pos.get("sibling")!.y);
+});
+
+function assertNoOverlaps(pos: Map<string, { x: number; y: number }>, nodes: Node[]) {
+  const typeById = new Map(nodes.map((n) => [n.id, n.type]));
+  const rects: { id: string; x: number; y: number; w: number; h: number }[] = [];
+  for (const [id, p] of pos) {
+    const isPerson = typeById.get(id) === "person";
+    rects.push({
+      id,
+      x: p.x,
+      y: p.y,
+      w: isPerson ? PERSON_W : UNION_W,
+      h: isPerson ? PERSON_H : UNION_H,
+    });
+  }
+  for (let i = 0; i < rects.length; i++) {
+    for (let j = i + 1; j < rects.length; j++) {
+      const a = rects[i];
+      const b = rects[j];
+      if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y) {
+        assert.fail(
+          `Overlap: ${a.id} (${a.x},${a.y},${a.w}x${a.h}) and ${b.id} (${b.x},${b.y},${b.w}x${b.h})`,
+        );
+      }
+    }
+  }
+}
+
+test("large tree: grandparents with many children and grandchildren have no overlaps", () => {
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
+
+  nodes.push(person("gpa"), person("gma"), union("u_gp"));
+  edges.push(partnerEdge("gpa", "u_gp"), partnerEdge("gma", "u_gp"));
+
+  const childCount = 8;
+  for (let i = 0; i < childCount; i++) {
+    const childId = `child_${i}`;
+    nodes.push(person(childId));
+    edges.push(childEdge("u_gp", childId));
+
+    const spouseId = `spouse_${i}`;
+    const uId = `u_couple_${i}`;
+    nodes.push(person(spouseId), union(uId));
+    edges.push(partnerEdge(childId, uId), partnerEdge(spouseId, uId));
+
+    const gcCount = 3;
+    for (let j = 0; j < gcCount; j++) {
+      const gcId = `gc_${i}_${j}`;
+      nodes.push(person(gcId));
+      edges.push(childEdge(uId, gcId));
+    }
+  }
+
+  const pos = computeAutoLayout(nodes, edges);
+  assertNoOverlaps(pos, nodes);
+});
+
+test("cross-tree couple with children: no overlaps", () => {
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
+
+  nodes.push(person("dadA"), person("momA"), union("uA"));
+  edges.push(partnerEdge("dadA", "uA"), partnerEdge("momA", "uA"));
+  nodes.push(person("childA1"), person("childA2"));
+  edges.push(childEdge("uA", "childA1"), childEdge("uA", "childA2"));
+
+  nodes.push(person("dadB"), person("momB"), union("uB"));
+  edges.push(partnerEdge("dadB", "uB"), partnerEdge("momB", "uB"));
+  nodes.push(person("childB1"), person("childB2"));
+  edges.push(childEdge("uB", "childB1"), childEdge("uB", "childB2"));
+
+  nodes.push(union("u_cross"));
+  edges.push(partnerEdge("childA1", "u_cross"), partnerEdge("childB1", "u_cross"));
+
+  for (let i = 0; i < 4; i++) {
+    const gcId = `gc_cross_${i}`;
+    nodes.push(person(gcId));
+    edges.push(childEdge("u_cross", gcId));
+  }
+
+  const pos = computeAutoLayout(nodes, edges);
+  assertNoOverlaps(pos, nodes);
+});
+
+test("multiple cross-tree marriages at different generations, no overlaps", () => {
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
+
+  // Tree A: great-grandparents with deep lineage
+  nodes.push(person("a_ggp"), person("a_ggm"), union("u_a_gg"));
+  edges.push(partnerEdge("a_ggp", "u_a_gg"), partnerEdge("a_ggm", "u_a_gg"));
+
+  for (let i = 0; i < 5; i++) {
+    const gp = `a_gp_${i}`;
+    nodes.push(person(gp));
+    edges.push(childEdge("u_a_gg", gp));
+    if (i < 3) {
+      const gs = `a_gs_${i}`;
+      const gu = `u_a_g_${i}`;
+      nodes.push(person(gs), union(gu));
+      edges.push(partnerEdge(gp, gu), partnerEdge(gs, gu));
+      for (let j = 0; j < 3; j++) {
+        const kid = `a_kid_${i}_${j}`;
+        nodes.push(person(kid));
+        edges.push(childEdge(gu, kid));
+      }
+    }
+  }
+
+  // Tree B: another family
+  nodes.push(person("b_ggp"), person("b_ggm"), union("u_b_gg"));
+  edges.push(partnerEdge("b_ggp", "u_b_gg"), partnerEdge("b_ggm", "u_b_gg"));
+
+  for (let i = 0; i < 4; i++) {
+    const gp = `b_gp_${i}`;
+    nodes.push(person(gp));
+    edges.push(childEdge("u_b_gg", gp));
+    if (i < 2) {
+      const gs = `b_gs_${i}`;
+      const gu = `u_b_g_${i}`;
+      nodes.push(person(gs), union(gu));
+      edges.push(partnerEdge(gp, gu), partnerEdge(gs, gu));
+      for (let j = 0; j < 3; j++) {
+        const kid = `b_kid_${i}_${j}`;
+        nodes.push(person(kid));
+        edges.push(childEdge(gu, kid));
+      }
+    }
+  }
+
+  // Cross-tree marriage: a_gp_0 marries b_gp_0's child
+  // But a_gp_0 already has a spouse within tree A...
+  // Instead: a_kid_0_0 marries b_kid_0_0
+  nodes.push(union("u_cross1"));
+  edges.push(partnerEdge("a_kid_0_0", "u_cross1"), partnerEdge("b_kid_0_0", "u_cross1"));
+  for (let i = 0; i < 3; i++) {
+    const gc = `cross1_gc_${i}`;
+    nodes.push(person(gc));
+    edges.push(childEdge("u_cross1", gc));
+  }
+
+  // Second cross-tree marriage at same generation
+  nodes.push(union("u_cross2"));
+  edges.push(partnerEdge("a_kid_1_0", "u_cross2"), partnerEdge("b_kid_1_0", "u_cross2"));
+  for (let i = 0; i < 2; i++) {
+    const gc = `cross2_gc_${i}`;
+    nodes.push(person(gc));
+    edges.push(childEdge("u_cross2", gc));
+  }
+
+  const pos = computeAutoLayout(nodes, edges);
+  assertNoOverlaps(pos, nodes);
+});
+
+test("86+ node tree: 5 generations Italian family style, no overlaps", () => {
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
+  let uid = 0;
+  const u = () => `u_${uid++}`;
+
+  // Gen 1: great-great-grandparents
+  nodes.push(person("ggp"), person("ggm"));
+  const ugg = u();
+  nodes.push(union(ugg));
+  edges.push(partnerEdge("ggp", ugg), partnerEdge("ggm", ugg));
+
+  // Gen 2: 6 children of ggp, each with spouse and 3-5 kids
+  const gen2kids: string[] = [];
+  for (let i = 0; i < 6; i++) {
+    const c = `g2_${i}`;
+    const s = `g2s_${i}`;
+    const cu = u();
+    gen2kids.push(c);
+    nodes.push(person(c), person(s), union(cu));
+    edges.push(childEdge(ugg, c), partnerEdge(c, cu), partnerEdge(s, cu));
+
+    const nKids = 3 + (i % 3);
+    for (let j = 0; j < nKids; j++) {
+      const gc = `g3_${i}_${j}`;
+      nodes.push(person(gc));
+      edges.push(childEdge(cu, gc));
+
+      // Some gen3 kids also have spouses and children
+      if (j < 2) {
+        const gs = `g3s_${i}_${j}`;
+        const gu = u();
+        nodes.push(person(gs), union(gu));
+        edges.push(partnerEdge(gc, gu), partnerEdge(gs, gu));
+        for (let k = 0; k < 2; k++) {
+          const ggc = `g4_${i}_${j}_${k}`;
+          nodes.push(person(ggc));
+          edges.push(childEdge(gu, ggc));
+        }
+      }
+    }
+  }
+
+  const pos = computeAutoLayout(nodes, edges);
+  assert.ok(nodes.length >= 80, `Expected 80+ nodes, got ${nodes.length}`);
+  assertNoOverlaps(pos, nodes);
+});
+
+test("deep tree: 4 generations with branching, no overlaps", () => {
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
+
+  nodes.push(person("ggpa"), person("ggma"), union("u_gg"));
+  edges.push(partnerEdge("ggpa", "u_gg"), partnerEdge("ggma", "u_gg"));
+
+  for (let a = 0; a < 3; a++) {
+    const gp = `gp_${a}`;
+    const gs = `gs_${a}`;
+    const gu = `u_g_${a}`;
+    nodes.push(person(gp), person(gs), union(gu));
+    edges.push(childEdge("u_gg", gp), partnerEdge(gp, gu), partnerEdge(gs, gu));
+
+    for (let b = 0; b < 4; b++) {
+      const p = `p_${a}_${b}`;
+      const s = `s_${a}_${b}`;
+      const pu = `u_p_${a}_${b}`;
+      nodes.push(person(p), person(s), union(pu));
+      edges.push(childEdge(gu, p), partnerEdge(p, pu), partnerEdge(s, pu));
+
+      for (let c = 0; c < 2; c++) {
+        const kid = `kid_${a}_${b}_${c}`;
+        nodes.push(person(kid));
+        edges.push(childEdge(pu, kid));
+      }
+    }
+  }
+
+  const pos = computeAutoLayout(nodes, edges);
+  assertNoOverlaps(pos, nodes);
 });
