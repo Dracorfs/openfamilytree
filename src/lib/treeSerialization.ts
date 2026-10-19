@@ -220,8 +220,9 @@ function repairCorruptedPartners(
       r.nodeAType === "person" ? r.nodeAId : r.nodeBType === "person" ? r.nodeBId : null;
     if (!unionId || !personId) continue;
 
+    if (!partnerCount.has(unionId)) partnerCount.set(unionId, 0);
     if (r.type === "partner") {
-      partnerCount.set(unionId, (partnerCount.get(unionId) ?? 0) + 1);
+      partnerCount.set(unionId, partnerCount.get(unionId)! + 1);
     } else {
       const arr = childEdgesOf.get(unionId) ?? [];
       arr.push(r);
@@ -255,11 +256,13 @@ function repairCorruptedPartners(
   for (const [unionId, count] of partnerCount) {
     if (count >= 2) continue;
     const children = childEdgesOf.get(unionId) ?? [];
+    let currentCount = count;
     for (const r of children) {
-      if (count + toPromote.size >= 2) break;
+      if (currentCount >= 2) break;
       if (toPromote.has(r.id)) continue;
       toPromote.add(r.id);
-      partnerCount.set(unionId, (partnerCount.get(unionId) ?? 0) + 1);
+      currentCount++;
+      partnerCount.set(unionId, currentCount);
     }
   }
 

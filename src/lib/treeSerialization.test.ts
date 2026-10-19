@@ -260,4 +260,40 @@ describe("deserializeFromDb", () => {
     expect(grandkidEdge!.type).toBe("smoothstep");
     expect(grandkidEdge!.source).toBe("u_couple");
   });
+
+  it("repairs multiple corrupted unions independently (not blocked by global count)", () => {
+    const p = (id: string, name: string) => ({
+      id, familyId: FAMILY, name, surname: null, birthSurname: null, gender: null,
+      otherGender: null, birthYear: null, birthPlace: null, deathDate: null,
+      email: null, biography: null, avatarUrl: null, colorLabel: null, posX: 0, posY: 0,
+    });
+    const { edges } = deserializeFromDb(
+      [p("a", "A"), p("b", "B"), p("c", "C"), p("d", "D"), p("kid1", "Kid1"), p("kid2", "Kid2")],
+      [
+        { id: "u1", familyId: FAMILY, posX: 0, posY: 0 },
+        { id: "u2", familyId: FAMILY, posX: 0, posY: 0 },
+      ],
+      [
+        // u1: both partners corrupted as parent-child
+        { id: "r1", familyId: FAMILY, type: "parent-child", nodeAType: "union", nodeAId: "u1", nodeBType: "person", nodeBId: "a" },
+        { id: "r2", familyId: FAMILY, type: "parent-child", nodeAType: "union", nodeAId: "u1", nodeBType: "person", nodeBId: "b" },
+        { id: "r3", familyId: FAMILY, type: "parent-child", nodeAType: "union", nodeAId: "u1", nodeBType: "person", nodeBId: "kid1" },
+        // u2: both partners corrupted as parent-child
+        { id: "r4", familyId: FAMILY, type: "parent-child", nodeAType: "union", nodeAId: "u2", nodeBType: "person", nodeBId: "c" },
+        { id: "r5", familyId: FAMILY, type: "parent-child", nodeAType: "union", nodeAId: "u2", nodeBType: "person", nodeBId: "d" },
+        { id: "r6", familyId: FAMILY, type: "parent-child", nodeAType: "union", nodeAId: "u2", nodeBType: "person", nodeBId: "kid2" },
+      ],
+    );
+
+    // Each union should have exactly 2 partner edges and 1 child edge
+    const u1Partners = edges.filter(e => e.type === "partner" && e.target === "u1");
+    const u1Children = edges.filter(e => e.type === "smoothstep" && e.source === "u1");
+    const u2Partners = edges.filter(e => e.type === "partner" && e.target === "u2");
+    const u2Children = edges.filter(e => e.type === "smoothstep" && e.source === "u2");
+
+    expect(u1Partners).toHaveLength(2);
+    expect(u1Children).toHaveLength(1);
+    expect(u2Partners).toHaveLength(2);
+    expect(u2Children).toHaveLength(1);
+  });
 });
