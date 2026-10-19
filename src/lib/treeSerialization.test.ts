@@ -219,4 +219,45 @@ describe("deserializeFromDb", () => {
     expect(edge.target).toBe("aaa_union");
     expect(edge.type).toBe("partner");
   });
+
+  it("repairs corrupted partner edges saved as parent-child after save→load→save cycles", () => {
+    // Simulate corruption: person X is partner of union U, but saved as parent-child
+    // X also has a real parent union V. So X has 2 parent unions → detectable.
+    const { nodes, edges } = deserializeFromDb(
+      [
+        { id: "dad", familyId: FAMILY, name: "Dad", surname: null, birthSurname: null, gender: "m", otherGender: null, birthYear: null, birthPlace: null, deathDate: null, email: null, biography: null, avatarUrl: null, colorLabel: null, posX: 0, posY: 0 },
+        { id: "mom", familyId: FAMILY, name: "Mom", surname: null, birthSurname: null, gender: "f", otherGender: null, birthYear: null, birthPlace: null, deathDate: null, email: null, biography: null, avatarUrl: null, colorLabel: null, posX: 0, posY: 0 },
+        { id: "child", familyId: FAMILY, name: "Child", surname: null, birthSurname: null, gender: null, otherGender: null, birthYear: null, birthPlace: null, deathDate: null, email: null, biography: null, avatarUrl: null, colorLabel: null, posX: 0, posY: 0 },
+        { id: "spouse", familyId: FAMILY, name: "Spouse", surname: null, birthSurname: null, gender: null, otherGender: null, birthYear: null, birthPlace: null, deathDate: null, email: null, biography: null, avatarUrl: null, colorLabel: null, posX: 0, posY: 0 },
+        { id: "grandkid", familyId: FAMILY, name: "Grandkid", surname: null, birthSurname: null, gender: null, otherGender: null, birthYear: null, birthPlace: null, deathDate: null, email: null, biography: null, avatarUrl: null, colorLabel: null, posX: 0, posY: 0 },
+      ],
+      [
+        { id: "u_parents", familyId: FAMILY, posX: 0, posY: 0 },
+        { id: "u_couple", familyId: FAMILY, posX: 0, posY: 0 },
+      ],
+      [
+        { id: "r1", familyId: FAMILY, type: "partner", nodeAType: "person", nodeAId: "dad", nodeBType: "union", nodeBId: "u_parents" },
+        { id: "r2", familyId: FAMILY, type: "partner", nodeAType: "person", nodeAId: "mom", nodeBType: "union", nodeBId: "u_parents" },
+        { id: "r3", familyId: FAMILY, type: "parent-child", nodeAType: "union", nodeAId: "u_parents", nodeBType: "person", nodeBId: "child" },
+        // CORRUPTED: spouse→u_couple saved as parent-child instead of partner
+        { id: "r4", familyId: FAMILY, type: "parent-child", nodeAType: "union", nodeAId: "u_couple", nodeBType: "person", nodeBId: "spouse" },
+        // child→u_couple is correct partner
+        { id: "r5", familyId: FAMILY, type: "partner", nodeAType: "person", nodeAId: "child", nodeBType: "union", nodeBId: "u_couple" },
+        { id: "r6", familyId: FAMILY, type: "parent-child", nodeAType: "union", nodeAId: "u_couple", nodeBType: "person", nodeBId: "grandkid" },
+      ],
+    );
+
+    // spouse should be a partner of u_couple, not a child
+    const spouseEdge = edges.find(e => e.source === "spouse" || e.target === "spouse");
+    expect(spouseEdge).toBeDefined();
+    expect(spouseEdge!.type).toBe("partner");
+    expect(spouseEdge!.source).toBe("spouse");
+    expect(spouseEdge!.target).toBe("u_couple");
+
+    // grandkid should still be a child
+    const grandkidEdge = edges.find(e => e.target === "grandkid");
+    expect(grandkidEdge).toBeDefined();
+    expect(grandkidEdge!.type).toBe("smoothstep");
+    expect(grandkidEdge!.source).toBe("u_couple");
+  });
 });

@@ -440,6 +440,68 @@ test("86+ node tree: 5 generations Italian family style, no overlaps", () => {
   assertNoOverlaps(pos, nodes);
 });
 
+test("deep cross-tree marriage: children of deferred union don't overlap parent trees", () => {
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
+  let uid = 0;
+  const u = () => `u_${uid++}`;
+
+  // Tree A: 3 generations deep, wide bottom
+  nodes.push(person("a_gp"), person("a_gm"));
+  const uAg = u();
+  nodes.push(union(uAg));
+  edges.push(partnerEdge("a_gp", uAg), partnerEdge("a_gm", uAg));
+
+  for (let i = 0; i < 4; i++) {
+    const p = `a_p_${i}`;
+    nodes.push(person(p));
+    edges.push(childEdge(uAg, p));
+    const sp = `a_sp_${i}`;
+    const pu = u();
+    nodes.push(person(sp), union(pu));
+    edges.push(partnerEdge(p, pu), partnerEdge(sp, pu));
+    for (let j = 0; j < 3; j++) {
+      const kid = `a_kid_${i}_${j}`;
+      nodes.push(person(kid));
+      edges.push(childEdge(pu, kid));
+    }
+  }
+
+  // Tree B: 3 generations deep, wide bottom
+  nodes.push(person("b_gp"), person("b_gm"));
+  const uBg = u();
+  nodes.push(union(uBg));
+  edges.push(partnerEdge("b_gp", uBg), partnerEdge("b_gm", uBg));
+
+  for (let i = 0; i < 4; i++) {
+    const p = `b_p_${i}`;
+    nodes.push(person(p));
+    edges.push(childEdge(uBg, p));
+    const sp = `b_sp_${i}`;
+    const pu = u();
+    nodes.push(person(sp), union(pu));
+    edges.push(partnerEdge(p, pu), partnerEdge(sp, pu));
+    for (let j = 0; j < 3; j++) {
+      const kid = `b_kid_${i}_${j}`;
+      nodes.push(person(kid));
+      edges.push(childEdge(pu, kid));
+    }
+  }
+
+  // Cross-tree marriage at the child level with own children
+  const uCross = u();
+  nodes.push(union(uCross));
+  edges.push(partnerEdge("a_kid_1_0", uCross), partnerEdge("b_kid_1_0", uCross));
+  for (let i = 0; i < 4; i++) {
+    const gc = `cross_gc_${i}`;
+    nodes.push(person(gc));
+    edges.push(childEdge(uCross, gc));
+  }
+
+  const pos = computeAutoLayout(nodes, edges);
+  assertNoOverlaps(pos, nodes);
+});
+
 test("deep tree: 4 generations with branching, no overlaps", () => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];

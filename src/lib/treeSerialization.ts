@@ -183,7 +183,9 @@ export function deserializeFromDb(
     });
   }
 
-  const edges: ReactFlowEdge[] = relationships.map((r) => {
+  const repaired = repairCorruptedPartners(relationships);
+
+  const edges: ReactFlowEdge[] = repaired.map((r) => {
     if (r.type === "partner") {
       const personIsA = r.nodeAType === "person";
       return {
@@ -202,4 +204,68 @@ export function deserializeFromDb(
   });
 
   return { nodes, edges };
+}
+
+function repairCorruptedPartners(
+  relationships: RelationshipRow[],
+): RelationshipRow[] {
+  const partnerCount = new Map<string, number>();
+  const childEdgesOf = new Map<string, RelationshipRow[]>();
+  const parentUnionsOf = new Map<string, string[]>();
+
+  for (const r of relationships) {
+    const unionId =
+      r.nodeAType === "union" ? r.nodeAId : r.nodeBType === "union" ? r.nodeBId : null;
+    const personId =
+      r.nodeAType === "person" ? r.nodeAId : r.nodeBType === "person" ? r.nodeBId : null;
+    if (!unionId || !personId) continue;
+
+    if (r.type === "partner") {
+      partnerCount.set(unionId, (partnerCount.get(unionId) ?? 0) + 1);
+    } else {
+      const arr = childEdgesOf.get(unionId) ?? [];
+      arr.push(r);
+      childEdgesOf.set(unionId, arr);
+
+      const parents = parentUnionsOf.get(personId) ?? [];
+      parents.push(unionId);
+      parentUnionsOf.set(personId, parents);
+    }
+  }
+
+  const toPromote = new Set<string>();
+
+  for (const [personId, unions] of parentUnionsOf) {
+    if (unions.length < 2) continue;
+    for (const unionId of unions) {
+      if ((partnerCount.get(unionId) ?? 0) >= 2) continue;
+      const childEdge = relationships.find(
+        (r) =>
+          r.type === "parent-child" &&
+          ((r.nodeAType === "union" && r.nodeAId === unionId && r.nodeBId === personId) ||
+            (r.nodeBType === "union" && r.nodeBId === unionId && r.nodeAId === personId)),
+      );
+      if (childEdge) {
+        toPromote.add(childEdge.id);
+        partnerCount.set(unionId, (partnerCount.get(unionId) ?? 0) + 1);
+      }
+    }
+  }
+
+  for (const [unionId, count] of partnerCount) {
+    if (count >= 2) continue;
+    const children = childEdgesOf.get(unionId) ?? [];
+    for (const r of children) {
+      if (count + toPromote.size >= 2) break;
+      if (toPromote.has(r.id)) continue;
+      toPromote.add(r.id);
+      partnerCount.set(unionId, (partnerCount.get(unionId) ?? 0) + 1);
+    }
+  }
+
+  if (toPromote.size === 0) return relationships;
+
+  return relationships.map((r) =>
+    toPromote.has(r.id) ? { ...r, type: "partner" as const } : r,
+  );
 }

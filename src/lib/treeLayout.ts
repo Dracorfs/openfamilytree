@@ -500,7 +500,52 @@ export function computeAutoLayout(
     }
   }
 
+  resolveOverlaps(finalPositions, kinds);
+
   return finalPositions;
+}
+
+function resolveOverlaps(
+  positions: Map<string, { x: number; y: number }>,
+  kinds: Map<string, NodeKind>,
+) {
+  const nodeW = (id: string) => (kinds.get(id) === "union" ? UNION_W : PERSON_W);
+  const nodeH = (id: string) => (kinds.get(id) === "union" ? UNION_H : PERSON_H);
+
+  for (let iter = 0; iter < 100; iter++) {
+    let worstPush = 0;
+    let pushThreshold = 0;
+
+    for (const [idA, posA] of positions) {
+      const wA = nodeW(idA);
+      const hA = nodeH(idA);
+      for (const [idB, posB] of positions) {
+        if (idA >= idB) continue;
+        const wB = nodeW(idB);
+        const hB = nodeH(idB);
+        if (
+          posA.x < posB.x + wB && posA.x + wA > posB.x &&
+          posA.y < posB.y + hB && posA.y + hA > posB.y
+        ) {
+          const [leftX, leftW, rightX] =
+            posA.x <= posB.x ? [posA.x, wA, posB.x] : [posB.x, wB, posA.x];
+          const push = leftX + leftW + H_GAP - rightX;
+          if (push > worstPush) {
+            worstPush = push;
+            pushThreshold = rightX;
+          }
+        }
+      }
+    }
+
+    if (worstPush <= 0) break;
+
+    for (const [id, pos] of positions) {
+      if (pos.x >= pushThreshold) {
+        positions.set(id, { x: pos.x + worstPush, y: pos.y });
+      }
+    }
+  }
 }
 
 export function applyAutoLayout(
