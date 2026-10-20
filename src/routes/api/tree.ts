@@ -8,6 +8,7 @@ import {
   type UnionRow,
   type RelationshipRow,
 } from "../../lib/treeSerialization";
+import { applyAutoLayout } from "../../lib/treeLayout";
 
 export const Route = createFileRoute("/api/tree")({
   server: {
@@ -57,16 +58,18 @@ export const Route = createFileRoute("/api/tree")({
                   data: { treeData: null },
                 }),
               ]);
-              const tree = deserializeFromDb(persons, unions, relationships);
+              const raw = deserializeFromDb(persons, unions, relationships);
+              const tree = applyAutoLayout(raw.nodes as any, raw.edges as any);
               return Response.json({ success: true, tree });
             }
           }
 
-          const tree = deserializeFromDb(
+          const raw = deserializeFromDb(
             family.persons as PersonRow[],
             family.unions as UnionRow[],
             family.relationships as RelationshipRow[],
           );
+          const tree = applyAutoLayout(raw.nodes as any, raw.edges as any);
           return Response.json({ success: true, tree });
         } catch (error: any) {
           console.error("Failed to load tree:", error);
