@@ -694,6 +694,66 @@ test("cross-tree couple: cousin placement - scrambled DB order", () => {
   assertNoOverlaps(pos, nodes);
 });
 
+test("deferred union children don't land among uncle's children", () => {
+  // Tree1: carlos+elsa → alejandro, omar
+  // omar+mirta → daniel, barbara, ulises, daniela, alexis (5 kids)
+  // Tree2: ruben+maria → liliana
+  // Deferred: alejandro+liliana → francisco, luisiana
+  // francisco+serena
+  // Francisco/Luisiana must not overlap or interleave with Omar's children
+  const nodes: Node[] = [
+    person("carlos"), person("elsa"), union("u_ce"),
+    person("alejandro"), person("omar"),
+    person("mirta"), union("u_om"),
+    person("daniel"), person("barbara"), person("ulises"),
+    person("daniela"), person("alexis"),
+    person("ruben"), person("maria"), union("u_rm"),
+    person("liliana"),
+    union("u_al"),
+    person("francisco"), person("luisiana"),
+    person("serena"), union("u_fs"),
+  ];
+  const edges: Edge[] = [
+    partnerEdge("carlos", "u_ce"), partnerEdge("elsa", "u_ce"),
+    childEdge("u_ce", "alejandro"), childEdge("u_ce", "omar"),
+    partnerEdge("omar", "u_om"), partnerEdge("mirta", "u_om"),
+    childEdge("u_om", "daniel"), childEdge("u_om", "barbara"),
+    childEdge("u_om", "ulises"), childEdge("u_om", "daniela"),
+    childEdge("u_om", "alexis"),
+    partnerEdge("ruben", "u_rm"), partnerEdge("maria", "u_rm"),
+    childEdge("u_rm", "liliana"),
+    partnerEdge("alejandro", "u_al"), partnerEdge("liliana", "u_al"),
+    childEdge("u_al", "francisco"), childEdge("u_al", "luisiana"),
+    partnerEdge("francisco", "u_fs"), partnerEdge("serena", "u_fs"),
+  ];
+  const pos = computeAutoLayout(nodes, edges);
+
+  // Omar's children should form a contiguous block
+  const omarKids = ["daniel", "barbara", "ulises", "daniela", "alexis"];
+  const omarXs = omarKids.map(k => centerX(pos.get(k)!));
+  const omarMin = Math.min(...omarXs);
+  const omarMax = Math.max(...omarXs);
+
+  // Francisco and Luisiana must not be inside Omar's children block
+  const franX = centerX(pos.get("francisco")!);
+  const luiX = centerX(pos.get("luisiana")!);
+  const serX = centerX(pos.get("serena")!);
+  assert.ok(
+    franX < omarMin || franX > omarMax,
+    `francisco (x=${franX}) inside omar's kids block [${omarMin}, ${omarMax}]`,
+  );
+  assert.ok(
+    luiX < omarMin || luiX > omarMax,
+    `luisiana (x=${luiX}) inside omar's kids block [${omarMin}, ${omarMax}]`,
+  );
+  assert.ok(
+    serX < omarMin || serX > omarMax,
+    `serena (x=${serX}) inside omar's kids block [${omarMin}, ${omarMax}]`,
+  );
+
+  assertNoOverlaps(pos, nodes);
+});
+
 test("deep tree: 4 generations with branching, no overlaps", () => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];

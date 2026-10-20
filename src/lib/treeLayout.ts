@@ -522,6 +522,7 @@ function resolveOverlaps(
 
   for (let iter = 0; iter < 100; iter++) {
     let worstPush = 0;
+    let leftId = "";
     let rightId = "";
 
     for (const [idA, posA] of positions) {
@@ -541,6 +542,7 @@ function resolveOverlaps(
             : posB.x + wB + H_GAP - posA.x;
           if (push > worstPush) {
             worstPush = push;
+            leftId = leftIsA ? idA : idB;
             rightId = leftIsA ? idB : idA;
           }
         }
@@ -549,23 +551,28 @@ function resolveOverlaps(
 
     if (worstPush <= 0) break;
 
+    const leftTree = treeByNode.get(leftId);
     const rightTree = treeByNode.get(rightId);
     const rightPos = positions.get(rightId)!;
-    const toPush = new Set<string>();
 
-    if (rightTree != null) {
-      for (const [id, _] of positions) {
-        const t = treeByNode.get(id);
-        if (t === rightTree) toPush.add(id);
+    if (leftTree != null && rightTree != null && leftTree !== rightTree) {
+      const toPush = new Set<string>();
+      for (const [id] of positions) {
+        if (treeByNode.get(id) === rightTree) toPush.add(id);
       }
-    }
-    for (const [id, pos] of positions) {
-      if (pos.x >= rightPos.x && !toPush.has(id)) toPush.add(id);
-    }
-
-    for (const id of toPush) {
-      const pos = positions.get(id)!;
-      positions.set(id, { x: pos.x + worstPush, y: pos.y });
+      for (const [id, pos] of positions) {
+        if (pos.x >= rightPos.x && !toPush.has(id)) toPush.add(id);
+      }
+      for (const id of toPush) {
+        const pos = positions.get(id)!;
+        positions.set(id, { x: pos.x + worstPush, y: pos.y });
+      }
+    } else {
+      for (const [id, pos] of positions) {
+        if (pos.x >= rightPos.x) {
+          positions.set(id, { x: pos.x + worstPush, y: pos.y });
+        }
+      }
     }
   }
 }
