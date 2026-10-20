@@ -387,6 +387,42 @@ export function computeAutoLayout(
     trueRoots.sort((a, b) => keyCmp(a.id, b.id));
   }
 
+  // Reorder siblings so a child with a deferred partner (cross-tree couple)
+  // sits at the edge closest to that partner's tree, not buried in the middle.
+  const rootOrder = new Map(trueRoots.map((r, i) => [r.id, i]));
+  for (const [, children] of g.unionChildren) {
+    if (children.length < 2) continue;
+    let childTreeIdx = -1;
+    const moveInfo = new Map<number, "front" | "back">();
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i];
+      const childRoot = personToRoot.get(child);
+      if (childRoot && childTreeIdx < 0) childTreeIdx = rootOrder.get(childRoot) ?? -1;
+      for (const u of g.partnerUnionsOf.get(child) ?? []) {
+        const others = (g.unionMembers.get(u) ?? []).filter((m) => m !== child);
+        const partner = others[0];
+        if (!partner || !g.parentUnionOf.has(partner)) continue;
+        const partnerRoot = personToRoot.get(partner);
+        if (!partnerRoot || partnerRoot === childRoot) continue;
+        const partnerIdx = rootOrder.get(partnerRoot) ?? -1;
+        if (partnerIdx < 0 || childTreeIdx < 0) continue;
+        moveInfo.set(i, partnerIdx < childTreeIdx ? "front" : "back");
+      }
+    }
+    if (moveInfo.size === 0) continue;
+    const front: string[] = [];
+    const mid: string[] = [];
+    const back: string[] = [];
+    for (let i = 0; i < children.length; i++) {
+      const dir = moveInfo.get(i);
+      if (dir === "front") front.push(children[i]);
+      else if (dir === "back") back.push(children[i]);
+      else mid.push(children[i]);
+    }
+    children.length = 0;
+    children.push(...front, ...mid, ...back);
+  }
+
   const finalPositions = new Map<string, { x: number; y: number }>();
   let rootCursor = 0;
   const treeByNode = new Map<string, string>();
@@ -448,6 +484,44 @@ export function computeAutoLayout(
         shiftTree(shallowTree, Math.abs(ap.y - bp.y));
         ap = finalPositions.get(a)!;
         bp = finalPositions.get(b)!;
+      }
+    }
+
+    // Bring the right partner's tree closer to the left partner so deferred
+    // couples don't end up at opposite ends of the layout.
+    const leftPid = ap.x <= bp.x ? a : b;
+    const rightPid = ap.x <= bp.x ? b : a;
+    const rightTree = treeByNode.get(rightPid);
+    if (rightTree != null) {
+      const lp = finalPositions.get(leftPid)!;
+      const rp = finalPositions.get(rightPid)!;
+      const desiredX = lp.x + PERSON_W + PARTNER_GAP + UNION_W + PARTNER_GAP;
+      const wantShift = rp.x - desiredX;
+      if (wantShift > 0) {
+        let maxShift = wantShift;
+        for (const [idR, posR] of finalPositions) {
+          if (treeByNode.get(idR) !== rightTree) continue;
+          const wR = kinds.get(idR) === "union" ? UNION_W : PERSON_W;
+          const hR = kinds.get(idR) === "union" ? UNION_H : PERSON_H;
+          for (const [idL, posL] of finalPositions) {
+            if (treeByNode.get(idL) === rightTree) continue;
+            if (posL.x >= posR.x) continue;
+            const wL = kinds.get(idL) === "union" ? UNION_W : PERSON_W;
+            const hL = kinds.get(idL) === "union" ? UNION_H : PERSON_H;
+            if (posR.y + hR <= posL.y || posR.y >= posL.y + hL) continue;
+            const allowed = posR.x - (posL.x + wL + H_GAP);
+            if (allowed < maxShift) maxShift = allowed;
+          }
+        }
+        if (maxShift > 0) {
+          for (const [id, pos] of finalPositions) {
+            if (treeByNode.get(id) === rightTree) {
+              finalPositions.set(id, { x: pos.x - maxShift, y: pos.y });
+            }
+          }
+          ap = finalPositions.get(a)!;
+          bp = finalPositions.get(b)!;
+        }
       }
     }
 
