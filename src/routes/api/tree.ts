@@ -30,7 +30,11 @@ export const Route = createFileRoute("/api/tree")({
 
           const family = await (prisma as any).family.findUnique({
             where: { ownerId: session.user.id },
-            include: { persons: true, unions: true, relationships: true },
+            include: {
+              persons: { orderBy: { createdAt: "asc" } },
+              unions: { orderBy: { createdAt: "asc" } },
+              relationships: { orderBy: { createdAt: "asc" } },
+            },
           });
 
           if (!family) return Response.json({ success: true, tree: null });

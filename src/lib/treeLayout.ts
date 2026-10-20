@@ -507,7 +507,7 @@ export function computeAutoLayout(
     }
   }
 
-  resolveOverlaps(finalPositions, kinds);
+  resolveOverlaps(finalPositions, kinds, treeByNode);
 
   return finalPositions;
 }
@@ -515,13 +515,14 @@ export function computeAutoLayout(
 function resolveOverlaps(
   positions: Map<string, { x: number; y: number }>,
   kinds: Map<string, NodeKind>,
+  treeByNode: Map<string, string>,
 ) {
   const nodeW = (id: string) => (kinds.get(id) === "union" ? UNION_W : PERSON_W);
   const nodeH = (id: string) => (kinds.get(id) === "union" ? UNION_H : PERSON_H);
 
   for (let iter = 0; iter < 100; iter++) {
     let worstPush = 0;
-    let pushThreshold = 0;
+    let rightId = "";
 
     for (const [idA, posA] of positions) {
       const wA = nodeW(idA);
@@ -534,12 +535,13 @@ function resolveOverlaps(
           posA.x < posB.x + wB && posA.x + wA > posB.x &&
           posA.y < posB.y + hB && posA.y + hA > posB.y
         ) {
-          const [leftX, leftW, rightX] =
-            posA.x <= posB.x ? [posA.x, wA, posB.x] : [posB.x, wB, posA.x];
-          const push = leftX + leftW + H_GAP - rightX;
+          const leftIsA = posA.x <= posB.x;
+          const push = leftIsA
+            ? posA.x + wA + H_GAP - posB.x
+            : posB.x + wB + H_GAP - posA.x;
           if (push > worstPush) {
             worstPush = push;
-            pushThreshold = rightX;
+            rightId = leftIsA ? idB : idA;
           }
         }
       }
@@ -547,10 +549,23 @@ function resolveOverlaps(
 
     if (worstPush <= 0) break;
 
-    for (const [id, pos] of positions) {
-      if (pos.x >= pushThreshold) {
-        positions.set(id, { x: pos.x + worstPush, y: pos.y });
+    const rightTree = treeByNode.get(rightId);
+    const rightPos = positions.get(rightId)!;
+    const toPush = new Set<string>();
+
+    if (rightTree != null) {
+      for (const [id, _] of positions) {
+        const t = treeByNode.get(id);
+        if (t === rightTree) toPush.add(id);
       }
+    }
+    for (const [id, pos] of positions) {
+      if (pos.x >= rightPos.x && !toPush.has(id)) toPush.add(id);
+    }
+
+    for (const id of toPush) {
+      const pos = positions.get(id)!;
+      positions.set(id, { x: pos.x + worstPush, y: pos.y });
     }
   }
 }

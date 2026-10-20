@@ -559,6 +559,141 @@ test("chained deferred unions: grandchild of cross-tree couple marries into yet 
   assertNoOverlaps(pos, nodes);
 });
 
+test("cousins not interleaved between siblings", () => {
+  const nodes: Node[] = [
+    person("gpa"), person("gma"), union("ug"),
+    person("dad"), person("mom"), union("up"),
+    person("unc"), person("aun"), union("uu"),
+    person("me"), person("ser"), union("um"),
+    person("sib"), person("cou"),
+  ];
+  const edges: Edge[] = [
+    partnerEdge("gpa", "ug"), partnerEdge("gma", "ug"),
+    childEdge("ug", "dad"), childEdge("ug", "unc"),
+    partnerEdge("dad", "up"), partnerEdge("mom", "up"),
+    partnerEdge("unc", "uu"), partnerEdge("aun", "uu"),
+    childEdge("up", "me"), childEdge("up", "sib"),
+    childEdge("uu", "cou"),
+    partnerEdge("me", "um"), partnerEdge("ser", "um"),
+  ];
+  const pos = computeAutoLayout(nodes, edges);
+  const meX = centerX(pos.get("me")!);
+  const sibX = centerX(pos.get("sib")!);
+  const couX = centerX(pos.get("cou")!);
+  const lo = Math.min(meX, sibX);
+  const hi = Math.max(meX, sibX);
+  assert.ok(couX < lo || couX > hi, `cousin between siblings`);
+  assertNoOverlaps(pos, nodes);
+});
+
+test("cousins not interleaved - scrambled node order", () => {
+  const nodes: Node[] = [
+    person("cou"), person("ser"), person("sib"),
+    person("unc"), person("me"), person("aun"),
+    person("mom"), person("dad"), person("gma"), person("gpa"),
+    union("ug"), union("up"), union("uu"), union("um"),
+  ];
+  const edges: Edge[] = [
+    partnerEdge("gpa", "ug"), partnerEdge("gma", "ug"),
+    childEdge("ug", "dad"), childEdge("ug", "unc"),
+    partnerEdge("dad", "up"), partnerEdge("mom", "up"),
+    partnerEdge("unc", "uu"), partnerEdge("aun", "uu"),
+    childEdge("up", "me"), childEdge("up", "sib"),
+    childEdge("uu", "cou"),
+    partnerEdge("me", "um"), partnerEdge("ser", "um"),
+  ];
+  const pos = computeAutoLayout(nodes, edges);
+  const meX = centerX(pos.get("me")!);
+  const sibX = centerX(pos.get("sib")!);
+  const couX = centerX(pos.get("cou")!);
+  const lo = Math.min(meX, sibX);
+  const hi = Math.max(meX, sibX);
+  assert.ok(couX < lo || couX > hi, `cousin between siblings [scrambled]`);
+  assertNoOverlaps(pos, nodes);
+});
+
+test("cross-tree couple: cousin not between their children", () => {
+  // Tree1: gp1+gm1 → alejandro, omar. Omar+wife → alexis (cousin)
+  // Tree2: gp2+gm2 → liliana
+  // Cross-tree: alejandro+liliana → francisco, luisiana
+  // francisco+serena (partner)
+  // Alexis must NOT be between francisco and luisiana
+  const nodes: Node[] = [
+    person("gp1"), person("gm1"), union("u_gp1"),
+    person("gp2"), person("gm2"), union("u_gp2"),
+    person("alejandro"), person("omar"),
+    person("liliana"),
+    person("omarwife"), union("u_omar"),
+    union("u_couple"),
+    person("francisco"), person("luisiana"),
+    person("serena"), union("u_fran"),
+    person("alexis"),
+  ];
+  const edges: Edge[] = [
+    partnerEdge("gp1", "u_gp1"), partnerEdge("gm1", "u_gp1"),
+    childEdge("u_gp1", "alejandro"), childEdge("u_gp1", "omar"),
+    partnerEdge("gp2", "u_gp2"), partnerEdge("gm2", "u_gp2"),
+    childEdge("u_gp2", "liliana"),
+    partnerEdge("alejandro", "u_couple"), partnerEdge("liliana", "u_couple"),
+    childEdge("u_couple", "francisco"), childEdge("u_couple", "luisiana"),
+    partnerEdge("omar", "u_omar"), partnerEdge("omarwife", "u_omar"),
+    childEdge("u_omar", "alexis"),
+    partnerEdge("francisco", "u_fran"), partnerEdge("serena", "u_fran"),
+  ];
+  const pos = computeAutoLayout(nodes, edges);
+  const franX = centerX(pos.get("francisco")!);
+  const luiX = centerX(pos.get("luisiana")!);
+  const alexX = centerX(pos.get("alexis")!);
+  const serX = centerX(pos.get("serena")!);
+  const franLuiMin = Math.min(franX, luiX);
+  const franLuiMax = Math.max(franX, luiX);
+  assert.ok(
+    alexX < franLuiMin || alexX > franLuiMax,
+    `alexis (x=${alexX}) between francisco (x=${franX}) and luisiana (x=${luiX})`,
+  );
+  const franSerMin = Math.min(franX, serX);
+  const franSerMax = Math.max(franX, serX);
+  assert.ok(
+    alexX < franSerMin || alexX > franSerMax,
+    `alexis (x=${alexX}) between francisco (x=${franX}) and serena (x=${serX})`,
+  );
+  assertNoOverlaps(pos, nodes);
+});
+
+test("cross-tree couple: cousin placement - scrambled DB order", () => {
+  // Same structure, nodes in scrambled order as DB might return
+  const nodes: Node[] = [
+    person("alexis"), person("serena"), person("luisiana"),
+    person("francisco"), person("omarwife"), person("liliana"),
+    person("omar"), person("alejandro"),
+    person("gm2"), person("gp2"), person("gm1"), person("gp1"),
+    union("u_fran"), union("u_couple"), union("u_omar"),
+    union("u_gp2"), union("u_gp1"),
+  ];
+  const edges: Edge[] = [
+    partnerEdge("gp1", "u_gp1"), partnerEdge("gm1", "u_gp1"),
+    childEdge("u_gp1", "alejandro"), childEdge("u_gp1", "omar"),
+    partnerEdge("gp2", "u_gp2"), partnerEdge("gm2", "u_gp2"),
+    childEdge("u_gp2", "liliana"),
+    partnerEdge("alejandro", "u_couple"), partnerEdge("liliana", "u_couple"),
+    childEdge("u_couple", "francisco"), childEdge("u_couple", "luisiana"),
+    partnerEdge("omar", "u_omar"), partnerEdge("omarwife", "u_omar"),
+    childEdge("u_omar", "alexis"),
+    partnerEdge("francisco", "u_fran"), partnerEdge("serena", "u_fran"),
+  ];
+  const pos = computeAutoLayout(nodes, edges);
+  const franX = centerX(pos.get("francisco")!);
+  const luiX = centerX(pos.get("luisiana")!);
+  const alexX = centerX(pos.get("alexis")!);
+  const franLuiMin = Math.min(franX, luiX);
+  const franLuiMax = Math.max(franX, luiX);
+  assert.ok(
+    alexX < franLuiMin || alexX > franLuiMax,
+    `alexis (x=${alexX}) between francisco (x=${franX}) and luisiana (x=${luiX}) [scrambled]`,
+  );
+  assertNoOverlaps(pos, nodes);
+});
+
 test("deep tree: 4 generations with branching, no overlaps", () => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
