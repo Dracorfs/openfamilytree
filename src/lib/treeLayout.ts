@@ -465,7 +465,14 @@ export function computeAutoLayout(
 
     const kidIds = (g.unionChildren.get(uId) ?? []).filter((k) => !claimed.has(k));
     if (kidIds.length === 0) continue;
-    const kidSubtrees = kidIds.map((k) => layoutSubtree(k, g, claimed, kinds, deferred));
+    const kidSubtrees = kidIds.map((k, idx) => {
+      let side: PartnerSide = "auto";
+      if (kidIds.length > 1) {
+        if (idx === 0) side = "left";
+        else if (idx === kidIds.length - 1) side = "right";
+      }
+      return layoutSubtree(k, g, claimed, kinds, deferred, side);
+    });
     for (const newU of deferred.keys()) pending.push(newU);
     deferred.clear();
 
@@ -483,8 +490,29 @@ export function computeAutoLayout(
       n % 2 === 1
         ? anchors[(n - 1) / 2]
         : (anchors[n / 2 - 1] + anchors[n / 2]) / 2;
-    const shift = uCenter - median;
     const childY = ap.y + PERSON_H + V_GAP;
+    const childrenWidth = cursor;
+    let shift = uCenter - median;
+
+    // Collision avoidance: don't place children among existing nodes at childY.
+    // Shift right past any occupied area until a clear slot is found.
+    for (let pass = 0; pass < 50; pass++) {
+      const curLeft = lefts[0] + shift;
+      const curRight = curLeft + childrenWidth;
+      let mustStartAfter = -Infinity;
+      for (const [id, pos] of finalPositions) {
+        const w = kinds.get(id) === "union" ? UNION_W : PERSON_W;
+        const h = kinds.get(id) === "union" ? UNION_H : PERSON_H;
+        if (pos.y + h > childY && pos.y < childY + PERSON_H) {
+          if (pos.x < curRight + H_GAP && pos.x + w > curLeft - H_GAP) {
+            mustStartAfter = Math.max(mustStartAfter, pos.x + w);
+          }
+        }
+      }
+      if (mustStartAfter <= curLeft) break;
+      shift = mustStartAfter + H_GAP - lefts[0];
+    }
+
     kidSubtrees.forEach((st, k) => {
       const left = lefts[k] + shift;
       for (const [nid, pos] of st.positions) {
