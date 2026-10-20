@@ -754,6 +754,47 @@ test("deferred union children don't land among uncle's children", () => {
   assertNoOverlaps(pos, nodes);
 });
 
+test("deferred couple trees adjacent despite intervening unrelated tree", () => {
+  // Tree 1 (personIndex 0-1): gp1+gp1w → child1
+  // Unrelated tree (personIndex 2-4): alien_gp+alien_gpw → alien_kid
+  // Tree 2 (personIndex 5-6): gp2+gp2w → child2
+  // Without adjacency enforcement, sort by treeKey puts unrelated between.
+  const nodes: Node[] = [
+    person("gp1"), person("gp1w"), union("u_gp1"),
+    person("alien_gp"), person("alien_gpw"), union("u_alien"),
+    person("alien_kid"),
+    person("gp2"), person("gp2w"), union("u_gp2"),
+    person("child1"), person("child2"),
+    union("u_couple"),
+  ];
+  const edges: Edge[] = [
+    partnerEdge("gp1", "u_gp1"), partnerEdge("gp1w", "u_gp1"),
+    childEdge("u_gp1", "child1"),
+    partnerEdge("gp2", "u_gp2"), partnerEdge("gp2w", "u_gp2"),
+    childEdge("u_gp2", "child2"),
+    partnerEdge("child1", "u_couple"), partnerEdge("child2", "u_couple"),
+    partnerEdge("alien_gp", "u_alien"), partnerEdge("alien_gpw", "u_alien"),
+    childEdge("u_alien", "alien_kid"),
+  ];
+  const pos = computeAutoLayout(nodes, edges);
+  const c1 = centerX(pos.get("child1")!);
+  const c2 = centerX(pos.get("child2")!);
+  const alien = centerX(pos.get("alien_kid")!);
+  const coupleMin = Math.min(c1, c2);
+  const coupleMax = Math.max(c1, c2);
+  assert.ok(
+    alien < coupleMin || alien > coupleMax,
+    `unrelated (x=${alien}) between couple (${coupleMin}..${coupleMax})`,
+  );
+  // Partners must be close together
+  const gap = Math.abs(c1 - c2);
+  assert.ok(
+    gap < PERSON_W * 3,
+    `partners too far apart: gap=${gap}, expected < ${PERSON_W * 3}`,
+  );
+  assertNoOverlaps(pos, nodes);
+});
+
 test("deep tree: 4 generations with branching, no overlaps", () => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];

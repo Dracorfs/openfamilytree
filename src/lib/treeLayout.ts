@@ -387,6 +387,34 @@ export function computeAutoLayout(
     trueRoots.sort((a, b) => keyCmp(a.id, b.id));
   }
 
+  // Enforce adjacency: partner trees connected by a deferred union must sit
+  // next to each other — otherwise unrelated trees land in between and tree
+  // compaction can't close the gap.
+  const deferredPairKeys = new Set<string>();
+  for (const person of persons) {
+    if (!g.parentUnionOf.has(person.id)) continue;
+    for (const u of g.partnerUnionsOf.get(person.id) ?? []) {
+      const others = (g.unionMembers.get(u) ?? []).filter((m) => m !== person.id);
+      const partner = others[0];
+      if (!partner || !g.parentUnionOf.has(partner)) continue;
+      const myRoot = personToRoot.get(person.id);
+      const partnerRoot = personToRoot.get(partner);
+      if (!myRoot || !partnerRoot || myRoot === partnerRoot) continue;
+      const key = [myRoot, partnerRoot].sort().join("|");
+      if (deferredPairKeys.has(key)) continue;
+      deferredPairKeys.add(key);
+      const idxA = trueRoots.findIndex((r) => r.id === myRoot);
+      const idxB = trueRoots.findIndex((r) => r.id === partnerRoot);
+      if (idxA < 0 || idxB < 0) continue;
+      const leftIdx = Math.min(idxA, idxB);
+      const rightIdx = Math.max(idxA, idxB);
+      if (rightIdx !== leftIdx + 1) {
+        const [moved] = trueRoots.splice(rightIdx, 1);
+        trueRoots.splice(leftIdx + 1, 0, moved);
+      }
+    }
+  }
+
   // Reorder siblings so a child with a deferred partner (cross-tree couple)
   // sits at the edge closest to that partner's tree, not buried in the middle.
   const rootOrder = new Map(trueRoots.map((r, i) => [r.id, i]));
