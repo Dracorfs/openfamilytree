@@ -502,6 +502,63 @@ test("deep cross-tree marriage: children of deferred union don't overlap parent 
   assertNoOverlaps(pos, nodes);
 });
 
+test("chained deferred unions: grandchild of cross-tree couple marries into yet another tree", () => {
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
+
+  // Tree 1: greatGP1 → GP1, GP1 has child P1
+  nodes.push(person("ggp1"), person("ggm1"), union("u_gg1"));
+  edges.push(partnerEdge("ggp1", "u_gg1"), partnerEdge("ggm1", "u_gg1"));
+  nodes.push(person("gp1"));
+  edges.push(childEdge("u_gg1", "gp1"));
+  nodes.push(person("gs1"), union("u_g1"));
+  edges.push(partnerEdge("gp1", "u_g1"), partnerEdge("gs1", "u_g1"));
+  nodes.push(person("p1"));
+  edges.push(childEdge("u_g1", "p1"));
+
+  // Tree 2: greatGP2 → GP2, GP2 has child P2
+  nodes.push(person("ggp2"), person("ggm2"), union("u_gg2"));
+  edges.push(partnerEdge("ggp2", "u_gg2"), partnerEdge("ggm2", "u_gg2"));
+  nodes.push(person("gp2"));
+  edges.push(childEdge("u_gg2", "gp2"));
+  nodes.push(person("gs2"), union("u_g2"));
+  edges.push(partnerEdge("gp2", "u_g2"), partnerEdge("gs2", "u_g2"));
+  nodes.push(person("p2"));
+  edges.push(childEdge("u_g2", "p2"));
+
+  // Tree 3: root3 → child3
+  nodes.push(person("root3a"), person("root3b"), union("u_root3"));
+  edges.push(partnerEdge("root3a", "u_root3"), partnerEdge("root3b", "u_root3"));
+  nodes.push(person("child3"));
+  edges.push(childEdge("u_root3", "child3"));
+
+  // Cross-tree marriage 1: P1 (tree1) + P2 (tree2) → kid_cross
+  nodes.push(union("u_cross1"));
+  edges.push(partnerEdge("p1", "u_cross1"), partnerEdge("p2", "u_cross1"));
+  nodes.push(person("kid_cross"));
+  edges.push(childEdge("u_cross1", "kid_cross"));
+
+  // Chained deferred: kid_cross (no position until u_cross1 resolves) + child3
+  nodes.push(union("u_cross2"));
+  edges.push(partnerEdge("kid_cross", "u_cross2"), partnerEdge("child3", "u_cross2"));
+  nodes.push(person("grandkid"));
+  edges.push(childEdge("u_cross2", "grandkid"));
+
+  const pos = computeAutoLayout(nodes, edges);
+
+  for (const n of nodes) {
+    assert.ok(pos.has(n.id), `node ${n.id} has no position`);
+  }
+
+  const kidCrossPos = pos.get("kid_cross")!;
+  assert.ok(kidCrossPos.x !== 0 || kidCrossPos.y !== 0, "kid_cross should have a real position");
+
+  const grandkidPos = pos.get("grandkid")!;
+  assert.ok(grandkidPos.y > kidCrossPos.y, "grandkid should be below kid_cross");
+
+  assertNoOverlaps(pos, nodes);
+});
+
 test("deep tree: 4 generations with branching, no overlaps", () => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];

@@ -424,15 +424,22 @@ export function computeAutoLayout(
   // the same generational row.
   const pending = [...deferred.keys()];
   deferred.clear();
+  let skippedInARow = 0;
   while (pending.length > 0) {
+    if (skippedInARow >= pending.length) break;
     const uId = pending.shift()!;
     const members = g.unionMembers.get(uId) ?? [];
-    if (members.length < 2) continue;
+    if (members.length < 2) { skippedInARow = 0; continue; }
     const a = members[0];
     const b = members[1];
     let ap = finalPositions.get(a);
     let bp = finalPositions.get(b);
-    if (!ap || !bp) continue;
+    if (!ap || !bp) {
+      pending.push(uId);
+      skippedInARow++;
+      continue;
+    }
+    skippedInARow = 0;
 
     if (ap.y !== bp.y) {
       const shallowId = ap.y < bp.y ? a : b;
