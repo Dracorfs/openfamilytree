@@ -844,6 +844,61 @@ test("deferred couple at different tree depths: partners on same row", () => {
   assertNoOverlaps(pos, nodes);
 });
 
+test("adding child to deferred union does not flip tree order", () => {
+  // Tree A: gpa+gma → jacinto+luisa → benicio
+  // Tree B: leonardo+dolores → juana
+  // Deferred: benicio+juana → maria
+  // Tree C: rgp+rgm → rodolfo
+  // Deferred: maria+rodolfo
+  // Adding a new child to benicio+juana should NOT flip tree order.
+  const nodes: Node[] = [
+    person("gpa"), person("gma"), union("u_gp"),
+    person("jacinto"), person("luisa"), union("u_jl"),
+    person("benicio"),
+    person("leonardo"), person("dolores"), union("u_ld"),
+    person("juana"),
+    union("u_bj"),
+    person("maria"),
+    person("rgp"), person("rgm"), union("u_rp"),
+    person("rodolfo"),
+    union("u_mr"),
+    person("liliana"),
+  ];
+  const edges: Edge[] = [
+    partnerEdge("gpa", "u_gp"), partnerEdge("gma", "u_gp"),
+    childEdge("u_gp", "jacinto"),
+    partnerEdge("jacinto", "u_jl"), partnerEdge("luisa", "u_jl"),
+    childEdge("u_jl", "benicio"),
+    partnerEdge("leonardo", "u_ld"), partnerEdge("dolores", "u_ld"),
+    childEdge("u_ld", "juana"),
+    partnerEdge("benicio", "u_bj"), partnerEdge("juana", "u_bj"),
+    childEdge("u_bj", "maria"),
+    partnerEdge("rgp", "u_rp"), partnerEdge("rgm", "u_rp"),
+    childEdge("u_rp", "rodolfo"),
+    partnerEdge("maria", "u_mr"), partnerEdge("rodolfo", "u_mr"),
+    childEdge("u_mr", "liliana"),
+  ];
+
+  const posBefore = computeAutoLayout(nodes, edges);
+  const jacintoBeforeX = posBefore.get("jacinto")!.x;
+  const leonardoBeforeX = posBefore.get("leonardo")!.x;
+  const jacintoLeft = jacintoBeforeX < leonardoBeforeX;
+
+  // Add a child to benicio+juana
+  const nodesAfter = [...nodes, person("newkid")];
+  const edgesAfter = [...edges, childEdge("u_bj", "newkid")];
+  const posAfter = computeAutoLayout(nodesAfter, edgesAfter);
+  const jacintoAfterX = posAfter.get("jacinto")!.x;
+  const leonardoAfterX = posAfter.get("leonardo")!.x;
+  const jacintoLeftAfter = jacintoAfterX < leonardoAfterX;
+
+  assert.equal(
+    jacintoLeft, jacintoLeftAfter,
+    `Tree order flipped! Jacinto was ${jacintoLeft ? "left" : "right"} of Leonardo, now ${jacintoLeftAfter ? "left" : "right"}`,
+  );
+  assertNoOverlaps(posAfter, nodesAfter);
+});
+
 test("chained deferred unions: later shift keeps earlier couple aligned", () => {
   // Tree A: gpa+gma → jacinto
   //   jacinto+luisa → benicio

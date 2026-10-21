@@ -331,6 +331,11 @@ export function computeAutoLayout(
   for (const person of persons) {
     const parentU = g.parentUnionOf.get(person.id);
     if (!parentU) continue;
+    // Skip children of deferred unions: both parents have their own ancestors,
+    // so sibling count in this union is unstable (adding a child flips it) and
+    // would produce contradictory rootBefore constraints with the partner side.
+    const parentMembers = g.unionMembers.get(parentU) ?? [];
+    if (parentMembers.length >= 2 && parentMembers.every((m) => g.parentUnionOf.has(m))) continue;
     const siblings = g.unionChildren.get(parentU) ?? [];
     if (siblings.length < 2) continue;
     const idx = siblings.indexOf(person.id);
