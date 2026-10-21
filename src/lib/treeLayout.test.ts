@@ -795,6 +795,55 @@ test("deferred couple trees adjacent despite intervening unrelated tree", () => 
   assertNoOverlaps(pos, nodes);
 });
 
+test("deferred couple at different tree depths: partners on same row", () => {
+  // Tree A (3 levels): gpa+gma → [jacinto, lorenza]
+  //   jacinto+luisa → benicio
+  //   lorenza+leopoldo → venancia, nemesio
+  // Tree B (2 levels): leonardo+dolores → juana
+  // Deferred: benicio+juana → maria, rodolfo
+  const nodes: Node[] = [
+    person("gpa"), person("gma"), union("u_gp"),
+    person("jacinto"), person("luisa"), union("u_jl"),
+    person("lorenza"), person("leopoldo"), union("u_ll"),
+    person("benicio"),
+    person("venancia"), person("nemesio"),
+    person("leonardo"), person("dolores"), union("u_ld"),
+    person("juana"),
+    union("u_bj"),
+    person("maria"), person("rodolfo"),
+  ];
+  const edges: Edge[] = [
+    partnerEdge("gpa", "u_gp"), partnerEdge("gma", "u_gp"),
+    childEdge("u_gp", "jacinto"), childEdge("u_gp", "lorenza"),
+    partnerEdge("jacinto", "u_jl"), partnerEdge("luisa", "u_jl"),
+    childEdge("u_jl", "benicio"),
+    partnerEdge("lorenza", "u_ll"), partnerEdge("leopoldo", "u_ll"),
+    childEdge("u_ll", "venancia"), childEdge("u_ll", "nemesio"),
+    partnerEdge("leonardo", "u_ld"), partnerEdge("dolores", "u_ld"),
+    childEdge("u_ld", "juana"),
+    partnerEdge("benicio", "u_bj"), partnerEdge("juana", "u_bj"),
+    childEdge("u_bj", "maria"), childEdge("u_bj", "rodolfo"),
+  ];
+  const pos = computeAutoLayout(nodes, edges);
+
+  assert.equal(
+    pos.get("benicio")!.y, pos.get("juana")!.y,
+    `benicio y=${pos.get("benicio")!.y} != juana y=${pos.get("juana")!.y}`,
+  );
+  assert.equal(
+    pos.get("jacinto")!.y, pos.get("leonardo")!.y,
+    `jacinto y=${pos.get("jacinto")!.y} != leonardo y=${pos.get("leonardo")!.y}`,
+  );
+  // Partners must be close horizontally
+  const bx = centerX(pos.get("benicio")!);
+  const jx = centerX(pos.get("juana")!);
+  assert.ok(
+    Math.abs(bx - jx) < PERSON_W * 3,
+    `benicio (x=${bx}) too far from juana (x=${jx})`,
+  );
+  assertNoOverlaps(pos, nodes);
+});
+
 test("deep tree: 4 generations with branching, no overlaps", () => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];

@@ -426,15 +426,32 @@ export function computeAutoLayout(
       const child = children[i];
       const childRoot = personToRoot.get(child);
       if (childRoot && childTreeIdx < 0) childTreeIdx = rootOrder.get(childRoot) ?? -1;
-      for (const u of g.partnerUnionsOf.get(child) ?? []) {
-        const others = (g.unionMembers.get(u) ?? []).filter((m) => m !== child);
-        const partner = others[0];
-        if (!partner || !g.parentUnionOf.has(partner)) continue;
-        const partnerRoot = personToRoot.get(partner);
-        if (!partnerRoot || partnerRoot === childRoot) continue;
-        const partnerIdx = rootOrder.get(partnerRoot) ?? -1;
-        if (partnerIdx < 0 || childTreeIdx < 0) continue;
-        moveInfo.set(i, partnerIdx < childTreeIdx ? "front" : "back");
+      // Check the child AND all its descendants for deferred partners.
+      // A grandchild's cross-tree marriage should pull the ancestor sibling
+      // toward that partner's tree.
+      const desc = new Set<string>();
+      const dStack: string[] = [child];
+      while (dStack.length) {
+        const d = dStack.pop()!;
+        if (desc.has(d)) continue;
+        desc.add(d);
+        for (const u of g.partnerUnionsOf.get(d) ?? []) {
+          for (const c of g.unionChildren.get(u) ?? []) dStack.push(c);
+        }
+      }
+      for (const d of desc) {
+        if (moveInfo.has(i)) break;
+        for (const u of g.partnerUnionsOf.get(d) ?? []) {
+          const others = (g.unionMembers.get(u) ?? []).filter((m) => m !== d);
+          const partner = others[0];
+          if (!partner || !g.parentUnionOf.has(partner)) continue;
+          const partnerRoot = personToRoot.get(partner);
+          if (!partnerRoot || partnerRoot === childRoot) continue;
+          const partnerIdx = rootOrder.get(partnerRoot) ?? -1;
+          if (partnerIdx < 0 || childTreeIdx < 0) continue;
+          moveInfo.set(i, partnerIdx < childTreeIdx ? "front" : "back");
+          break;
+        }
       }
     }
     if (moveInfo.size === 0) continue;
