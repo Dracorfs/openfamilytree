@@ -529,9 +529,40 @@ export function computeAutoLayout(
 
     if (ap.y !== bp.y) {
       const shallowId = ap.y < bp.y ? a : b;
+      const deepId = ap.y < bp.y ? b : a;
       const shallowTree = treeByNode.get(shallowId);
       if (shallowTree != null) {
         shiftTree(shallowTree, Math.abs(ap.y - bp.y));
+        // The vertical shift may place shallow-tree nodes onto Y rows
+        // already occupied by the deep tree, creating horizontal overlaps.
+        // Push the deep tree right by the minimum needed to clear them;
+        // the subsequent compaction brings it back close.
+        const deepTree = treeByNode.get(deepId);
+        if (deepTree != null && deepTree !== shallowTree) {
+          let maxPush = 0;
+          for (const [idS, posS] of finalPositions) {
+            if (treeByNode.get(idS) !== shallowTree) continue;
+            const wS = kinds.get(idS) === "union" ? UNION_W : PERSON_W;
+            const hS = kinds.get(idS) === "union" ? UNION_H : PERSON_H;
+            for (const [idD, posD] of finalPositions) {
+              if (treeByNode.get(idD) !== deepTree) continue;
+              const hD = kinds.get(idD) === "union" ? UNION_H : PERSON_H;
+              if (posS.y + hS <= posD.y || posS.y >= posD.y + hD) continue;
+              const wD = kinds.get(idD) === "union" ? UNION_W : PERSON_W;
+              if (posS.x < posD.x + wD && posS.x + wS > posD.x) {
+                const push = posS.x + wS + H_GAP - posD.x;
+                if (push > maxPush) maxPush = push;
+              }
+            }
+          }
+          if (maxPush > 0) {
+            for (const [id, pos] of finalPositions) {
+              if (treeByNode.get(id) === deepTree) {
+                finalPositions.set(id, { x: pos.x + maxPush, y: pos.y });
+              }
+            }
+          }
+        }
         ap = finalPositions.get(a)!;
         bp = finalPositions.get(b)!;
       }
@@ -542,7 +573,8 @@ export function computeAutoLayout(
     const leftPid = ap.x <= bp.x ? a : b;
     const rightPid = ap.x <= bp.x ? b : a;
     const rightTree = treeByNode.get(rightPid);
-    if (rightTree != null) {
+    const leftTree = treeByNode.get(leftPid);
+    if (rightTree != null && rightTree !== leftTree) {
       const lp = finalPositions.get(leftPid)!;
       const rp = finalPositions.get(rightPid)!;
       const desiredX = lp.x + PERSON_W + PARTNER_GAP + UNION_W + PARTNER_GAP;
@@ -728,7 +760,7 @@ function resolveOverlaps(
       }
     } else {
       for (const [id, pos] of positions) {
-        if (pos.x >= rightPos.x) {
+        if (id === rightId || pos.x > rightPos.x) {
           positions.set(id, { x: pos.x + worstPush, y: pos.y });
         }
       }

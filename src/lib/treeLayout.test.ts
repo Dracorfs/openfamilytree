@@ -979,3 +979,55 @@ test("deep tree: 4 generations with branching, no overlaps", () => {
   const pos = computeAutoLayout(nodes, edges);
   assertNoOverlaps(pos, nodes);
 });
+
+test("shiftTree does not mix sibling families at new Y level", () => {
+  const nodes: Node[] = [
+    person("gpa"), person("gma"), union("u_gp"),
+    person("jacinto"), person("luisa"), union("u_jl"),
+    person("benicio"),
+    person("leonardo"), person("dolores"), union("u_ld"),
+    person("juana"),
+    union("u_bj"),
+    person("rosa"), person("maria"), person("eva"),
+    person("rgp"), person("rgm"), union("u_rg"),
+    person("nemesio"), person("venancia"), union("u_nv"),
+    person("rodolfo"),
+    union("u_mr"),
+    person("kid"),
+  ];
+  const edges: Edge[] = [
+    partnerEdge("gpa", "u_gp"), partnerEdge("gma", "u_gp"),
+    childEdge("u_gp", "jacinto"),
+    partnerEdge("jacinto", "u_jl"), partnerEdge("luisa", "u_jl"),
+    childEdge("u_jl", "benicio"),
+    partnerEdge("leonardo", "u_ld"), partnerEdge("dolores", "u_ld"),
+    childEdge("u_ld", "juana"),
+    partnerEdge("benicio", "u_bj"), partnerEdge("juana", "u_bj"),
+    childEdge("u_bj", "rosa"), childEdge("u_bj", "maria"), childEdge("u_bj", "eva"),
+    partnerEdge("rgp", "u_rg"), partnerEdge("rgm", "u_rg"),
+    childEdge("u_rg", "nemesio"),
+    partnerEdge("nemesio", "u_nv"), partnerEdge("venancia", "u_nv"),
+    childEdge("u_nv", "rodolfo"),
+    partnerEdge("maria", "u_mr"), partnerEdge("rodolfo", "u_mr"),
+    childEdge("u_mr", "kid"),
+  ];
+  const pos = computeAutoLayout(nodes, edges);
+
+  assertNoOverlaps(pos, nodes);
+
+  const rosaY = pos.get("rosa")!.y;
+  assert.equal(pos.get("maria")!.y, rosaY, "maria not on same row as rosa");
+  assert.equal(pos.get("eva")!.y, rosaY, "eva not on same row as rosa");
+
+  const sibXs = ["rosa", "maria", "eva"].map((s) => pos.get(s)!.x).sort((a, b) => a - b);
+  const rodX = pos.get("rodolfo")!.x;
+  const nemX = pos.get("nemesio")!.x;
+  assert.ok(
+    rodX < sibXs[0] || rodX > sibXs[sibXs.length - 1],
+    `rodolfo (${rodX}) is between siblings [${sibXs}]`,
+  );
+  assert.ok(
+    nemX < sibXs[0] || nemX > sibXs[sibXs.length - 1],
+    `nemesio (${nemX}) is between siblings [${sibXs}]`,
+  );
+});
