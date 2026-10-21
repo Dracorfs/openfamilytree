@@ -844,6 +844,54 @@ test("deferred couple at different tree depths: partners on same row", () => {
   assertNoOverlaps(pos, nodes);
 });
 
+test("chained deferred unions: later shift keeps earlier couple aligned", () => {
+  // Tree A: gpa+gma → jacinto
+  //   jacinto+luisa → benicio
+  // Tree B: leonardo+dolores → juana
+  // Tree C: rodolfo_gp+rodolfo_gm → rodolfo
+  // Deferred 1: benicio+juana
+  // Deferred 2: one of benicio+juana's children + rodolfo → this shifts
+  //   Tree A, which must also shift Tree B (merged after deferred 1)
+  const nodes: Node[] = [
+    person("gpa"), person("gma"), union("u_gp"),
+    person("jacinto"), person("luisa"), union("u_jl"),
+    person("benicio"),
+    person("leonardo"), person("dolores"), union("u_ld"),
+    person("juana"),
+    union("u_bj"),
+    person("maria"),
+    person("rodolfo_gp"), person("rodolfo_gm"), union("u_rgp"),
+    person("rodolfo"),
+    union("u_mr"),
+    person("grandkid"),
+  ];
+  const edges: Edge[] = [
+    partnerEdge("gpa", "u_gp"), partnerEdge("gma", "u_gp"),
+    childEdge("u_gp", "jacinto"),
+    partnerEdge("jacinto", "u_jl"), partnerEdge("luisa", "u_jl"),
+    childEdge("u_jl", "benicio"),
+    partnerEdge("leonardo", "u_ld"), partnerEdge("dolores", "u_ld"),
+    childEdge("u_ld", "juana"),
+    partnerEdge("benicio", "u_bj"), partnerEdge("juana", "u_bj"),
+    childEdge("u_bj", "maria"),
+    partnerEdge("rodolfo_gp", "u_rgp"), partnerEdge("rodolfo_gm", "u_rgp"),
+    childEdge("u_rgp", "rodolfo"),
+    partnerEdge("maria", "u_mr"), partnerEdge("rodolfo", "u_mr"),
+    childEdge("u_mr", "grandkid"),
+  ];
+  const pos = computeAutoLayout(nodes, edges);
+
+  assert.equal(
+    pos.get("benicio")!.y, pos.get("juana")!.y,
+    `benicio y=${pos.get("benicio")!.y} != juana y=${pos.get("juana")!.y} after chained shift`,
+  );
+  assert.equal(
+    pos.get("jacinto")!.y, pos.get("leonardo")!.y,
+    `parents misaligned: jacinto y=${pos.get("jacinto")!.y} != leonardo y=${pos.get("leonardo")!.y}`,
+  );
+  assertNoOverlaps(pos, nodes);
+});
+
 test("deep tree: 4 generations with branching, no overlaps", () => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];

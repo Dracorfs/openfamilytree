@@ -577,9 +577,16 @@ export function computeAutoLayout(
     finalPositions.set(uId, { x: uCenter - UNION_W / 2, y: uY });
     kinds.set(uId, "union");
     claimed.add(uId);
-    // Union and its descendants join the anchor-a's tree so later alignment
-    // passes can shift them together.
+    // Merge BOTH partner trees into one so later shifts (from other deferred
+    // unions) move the entire connected group together and don't break the
+    // vertical alignment we just established.
     const mergedTree = treeByNode.get(a) ?? a;
+    const otherTree = treeByNode.get(b);
+    if (otherTree != null && otherTree !== mergedTree) {
+      for (const [id, tree] of treeByNode) {
+        if (tree === otherTree) treeByNode.set(id, mergedTree);
+      }
+    }
     treeByNode.set(uId, mergedTree);
 
     const kidIds = (g.unionChildren.get(uId) ?? []).filter((k) => !claimed.has(k));
