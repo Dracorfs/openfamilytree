@@ -1031,3 +1031,54 @@ test("shiftTree does not mix sibling families at new Y level", () => {
     `nemesio (${nemX}) is between siblings [${sibXs}]`,
   );
 });
+
+test("adding partner to child of deferred union does not cascade collision avoidance", () => {
+  // Same structure as shiftTree mixing test, plus a partner for Eva.
+  // Bug: collision avoidance checked ALL placed nodes (including other trees),
+  // causing massive rightward shift when Eva's subtree barely touched another tree.
+  const nodes: Node[] = [
+    person("gpa"), person("gma"), union("u_gp"),
+    person("jacinto"), person("luisa"), union("u_jl"),
+    person("benicio"),
+    person("leonardo"), person("dolores"), union("u_ld"),
+    person("juana"),
+    union("u_bj"),
+    person("rosa"), person("maria"), person("eva"),
+    person("rgp"), person("rgm"), union("u_rg"),
+    person("nemesio"), person("venancia"), union("u_nv"),
+    person("rodolfo"),
+    union("u_mr"),
+    person("kid"),
+    person("eva_partner"), union("u_eva"),
+  ];
+  const edges: Edge[] = [
+    partnerEdge("gpa", "u_gp"), partnerEdge("gma", "u_gp"),
+    childEdge("u_gp", "jacinto"),
+    partnerEdge("jacinto", "u_jl"), partnerEdge("luisa", "u_jl"),
+    childEdge("u_jl", "benicio"),
+    partnerEdge("leonardo", "u_ld"), partnerEdge("dolores", "u_ld"),
+    childEdge("u_ld", "juana"),
+    partnerEdge("benicio", "u_bj"), partnerEdge("juana", "u_bj"),
+    childEdge("u_bj", "rosa"), childEdge("u_bj", "maria"), childEdge("u_bj", "eva"),
+    partnerEdge("rgp", "u_rg"), partnerEdge("rgm", "u_rg"),
+    childEdge("u_rg", "nemesio"),
+    partnerEdge("nemesio", "u_nv"), partnerEdge("venancia", "u_nv"),
+    childEdge("u_nv", "rodolfo"),
+    partnerEdge("maria", "u_mr"), partnerEdge("rodolfo", "u_mr"),
+    childEdge("u_mr", "kid"),
+    partnerEdge("eva", "u_eva"), partnerEdge("eva_partner", "u_eva"),
+  ];
+  const pos = computeAutoLayout(nodes, edges);
+  assertNoOverlaps(pos, nodes);
+
+  const rosaY = pos.get("rosa")!.y;
+  assert.equal(pos.get("maria")!.y, rosaY, "maria not on same row as rosa");
+  assert.equal(pos.get("eva")!.y, rosaY, "eva not on same row as rosa");
+
+  const sibXs = ["rosa", "maria", "eva"].map((s) => pos.get(s)!.x).sort((a, b) => a - b);
+  const maxSibGap = sibXs[sibXs.length - 1] - sibXs[0];
+  assert.ok(
+    maxSibGap < PERSON_W * 6,
+    `siblings scattered: gap=${maxSibGap}px (max expected ${PERSON_W * 6})`,
+  );
+});

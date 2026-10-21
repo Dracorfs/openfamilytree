@@ -657,18 +657,18 @@ export function computeAutoLayout(
     const childrenWidth = cursor;
     let shift = uCenter - median;
 
-    // Collision avoidance: don't place children among existing nodes at childY.
-    // Shift right past any occupied area until a clear slot is found.
+    // Collision avoidance: shift children right past occupied area in same tree.
     for (let pass = 0; pass < 50; pass++) {
       const curLeft = lefts[0] + shift;
       const curRight = curLeft + childrenWidth;
       let mustStartAfter = -Infinity;
       for (const [id, pos] of finalPositions) {
+        if (treeByNode.get(id) !== mergedTree) continue;
         const w = kinds.get(id) === "union" ? UNION_W : PERSON_W;
         const h = kinds.get(id) === "union" ? UNION_H : PERSON_H;
         if (pos.y + h > childY && pos.y < childY + PERSON_H) {
           if (pos.x < curRight + H_GAP && pos.x + w > curLeft - H_GAP) {
-            mustStartAfter = Math.max(mustStartAfter, pos.x + w);
+            if (pos.x + w > mustStartAfter) mustStartAfter = pos.x + w;
           }
         }
       }
