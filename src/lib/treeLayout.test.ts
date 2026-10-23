@@ -1082,3 +1082,71 @@ test("adding partner to child of deferred union does not cascade collision avoid
     `siblings scattered: gap=${maxSibGap}px (max expected ${PERSON_W * 6})`,
   );
 });
+
+test("shiftTree overlap push prevents family interleaving at shared Y", () => {
+  // Tree A (Diz): gpa+gma → jacinto+luisa → benicio
+  // Tree B (Bracco): leo+dolores → juana_leonor
+  // Deferred: benicio+juana_leonor → [maria, rosa, eva, juana, nelida]
+  //   rosa has partner marcelo (no parents)
+  //   eva has partner omar (no parents)
+  // Tree C (Hochner, 4 gen): hgpa+hgma → rafael+agnes → lorenza+leopoldo → nemesio+venancia
+  //   → [rodolfo, nicanor, lcacha, nata, luisaq, margarita]
+  // Deferred: rodolfo+maria → liliana
+  const nodes: Node[] = [
+    person("gpa"), person("gma"), union("u_gp"),
+    person("jacinto"), person("luisa"), union("u_jl"),
+    person("benicio"),
+    person("leo"), person("dolores"), union("u_ld"),
+    person("juana_leonor"),
+    union("u_bj"),
+    person("maria"), person("rosa"), person("eva"), person("juana"), person("nelida"),
+    person("marcelo"), union("u_rm2"),
+    person("omar"), union("u_eo"),
+    person("hgpa"), person("hgma"), union("u_hg"),
+    person("rafael"), person("agnes"), union("u_ra"),
+    person("lorenza"), person("leopoldo"), union("u_ll"),
+    person("nemesio"), person("venancia"), union("u_nv"),
+    person("rodolfo"), person("nicanor"), person("lcacha"),
+    person("nata"), person("luisaq"), person("margarita"),
+    union("u_rm"),
+    person("liliana"),
+  ];
+  const edges: Edge[] = [
+    partnerEdge("gpa", "u_gp"), partnerEdge("gma", "u_gp"),
+    childEdge("u_gp", "jacinto"),
+    partnerEdge("jacinto", "u_jl"), partnerEdge("luisa", "u_jl"),
+    childEdge("u_jl", "benicio"),
+    partnerEdge("leo", "u_ld"), partnerEdge("dolores", "u_ld"),
+    childEdge("u_ld", "juana_leonor"),
+    partnerEdge("benicio", "u_bj"), partnerEdge("juana_leonor", "u_bj"),
+    childEdge("u_bj", "maria"), childEdge("u_bj", "rosa"), childEdge("u_bj", "eva"),
+    childEdge("u_bj", "juana"), childEdge("u_bj", "nelida"),
+    partnerEdge("rosa", "u_rm2"), partnerEdge("marcelo", "u_rm2"),
+    partnerEdge("eva", "u_eo"), partnerEdge("omar", "u_eo"),
+    partnerEdge("hgpa", "u_hg"), partnerEdge("hgma", "u_hg"),
+    childEdge("u_hg", "rafael"),
+    partnerEdge("rafael", "u_ra"), partnerEdge("agnes", "u_ra"),
+    childEdge("u_ra", "lorenza"),
+    partnerEdge("lorenza", "u_ll"), partnerEdge("leopoldo", "u_ll"),
+    childEdge("u_ll", "nemesio"), childEdge("u_ll", "venancia"),
+    partnerEdge("nemesio", "u_nv"), partnerEdge("venancia", "u_nv"),
+    childEdge("u_nv", "rodolfo"), childEdge("u_nv", "nicanor"), childEdge("u_nv", "lcacha"),
+    childEdge("u_nv", "nata"), childEdge("u_nv", "luisaq"), childEdge("u_nv", "margarita"),
+    partnerEdge("rodolfo", "u_rm"), partnerEdge("maria", "u_rm"),
+    childEdge("u_rm", "liliana"),
+  ];
+  const pos = computeAutoLayout(nodes, edges);
+  assertNoOverlaps(pos, nodes);
+
+  const dizKids = ["maria", "rosa", "eva", "juana", "nelida"];
+  const hochKids = ["rodolfo", "nicanor", "lcacha", "nata", "luisaq", "margarita"];
+  const dizRow = dizKids.map((id) => ({ id, x: pos.get(id)!.x })).sort((a, b) => a.x - b.x);
+  const hochRow = hochKids.map((id) => ({ id, x: pos.get(id)!.x })).sort((a, b) => a.x - b.x);
+
+  const dizRight = dizRow[dizRow.length - 1].x + PERSON_W;
+  const hochLeft = hochRow[0].x;
+  assert.ok(
+    dizRight <= hochLeft || hochRow[hochRow.length - 1].x + PERSON_W <= dizRow[0].x,
+    `families interleaved: Diz rightmost right=${dizRight}, Hoch leftmost=${hochLeft}`,
+  );
+});

@@ -534,26 +534,36 @@ export function computeAutoLayout(
       if (shallowTree != null) {
         shiftTree(shallowTree, Math.abs(ap.y - bp.y));
         // The vertical shift may place shallow-tree nodes onto Y rows
-        // already occupied by the deep tree, creating horizontal overlaps.
-        // Push the deep tree right by the minimum needed to clear them;
-        // the subsequent compaction brings it back close.
+        // already occupied by the deep tree.  Push the deep tree right
+        // so that at every mixed Y band ALL deep-tree nodes sit to the
+        // right of ALL shallow-tree nodes — preventing interleaving.
+        // Skip Y bands where shallow is already entirely past deep.
         const deepTree = treeByNode.get(deepId);
         if (deepTree != null && deepTree !== shallowTree) {
-          let maxPush = 0;
-          for (const [idS, posS] of finalPositions) {
-            if (treeByNode.get(idS) !== shallowTree) continue;
-            const wS = kinds.get(idS) === "union" ? UNION_W : PERSON_W;
-            const hS = kinds.get(idS) === "union" ? UNION_H : PERSON_H;
-            for (const [idD, posD] of finalPositions) {
-              if (treeByNode.get(idD) !== deepTree) continue;
-              const hD = kinds.get(idD) === "union" ? UNION_H : PERSON_H;
-              if (posS.y + hS <= posD.y || posS.y >= posD.y + hD) continue;
-              const wD = kinds.get(idD) === "union" ? UNION_W : PERSON_W;
-              if (posS.x < posD.x + wD && posS.x + wS > posD.x) {
-                const push = posS.x + wS + H_GAP - posD.x;
-                if (push > maxPush) maxPush = push;
-              }
+          const sRight = new Map<number, number>();
+          const sLeft = new Map<number, number>();
+          const dLeft = new Map<number, number>();
+          const dRight = new Map<number, number>();
+          for (const [id, pos] of finalPositions) {
+            const tree = treeByNode.get(id);
+            const w = kinds.get(id) === "union" ? UNION_W : PERSON_W;
+            if (tree === shallowTree) {
+              sRight.set(pos.y, Math.max(sRight.get(pos.y) ?? -Infinity, pos.x + w));
+              sLeft.set(pos.y, Math.min(sLeft.get(pos.y) ?? Infinity, pos.x));
+            } else if (tree === deepTree) {
+              dLeft.set(pos.y, Math.min(dLeft.get(pos.y) ?? Infinity, pos.x));
+              dRight.set(pos.y, Math.max(dRight.get(pos.y) ?? -Infinity, pos.x + w));
             }
+          }
+          let maxPush = 0;
+          for (const [y, shallowRight] of sRight) {
+            const deepLeft = dLeft.get(y);
+            const deepRightEdge = dRight.get(y);
+            if (deepLeft === undefined || deepRightEdge === undefined) continue;
+            const shallowLeft = sLeft.get(y)!;
+            if (shallowLeft >= deepRightEdge) continue;
+            const push = shallowRight + H_GAP - deepLeft;
+            if (push > maxPush) maxPush = push;
           }
           if (maxPush > 0) {
             for (const [id, pos] of finalPositions) {
